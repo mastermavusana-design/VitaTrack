@@ -85,3 +85,25 @@ export class DoseLogModel extends Model {
   @field('synced_at')    syncedAt!:   number | null
   @field('is_dirty')     isDirty!:    boolean
 }
+
+/* ─── Doctor Visit ──────────────────────────────────────────────────────── */
+export class DoctorVisitModel extends Model {
+  static table = 'doctor_visits'
+
+  @field('server_id')         serverId!:        string | null
+  @field('profile_id')        profileId!:       string
+  @field('visit_date')        visitDate!:       string
+  @field('visit_type')        visitType!:       string | null
+  @field('provider_name')     providerName!:    string | null
+  @field('specialty')         specialty!:       string | null
+  @field('facility')          facility!:        string | null
+  @field('reason')            reason!:          string | null
+  @field('diagnosis')         diagnosis!:       string | null
+  @field('treatment')         treatment!:       string | null
+  @field('follow_up_date')    followUpDate!:    string | null
+  @field('notes')             notes!:           string | null
+  @field('server_updated_at') serverUpdatedAt!: number | null
+  @field('synced_at')         syncedAt!:        number | null
+  @field('is_dirty')          isDirty!:         boolean
+  @field('is_deleted')        isDeleted!:       boolean
+}

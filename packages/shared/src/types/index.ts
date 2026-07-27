@@ -160,7 +160,7 @@ export type DoctorVisit = {
   profile_id: string
   visit_date: string
   visit_type: string | null
-  doctor_name: string | null
+  provider_name: string | null
   specialty: string | null
   facility: string | null
   reason: string | null
@@ -168,6 +168,7 @@ export type DoctorVisit = {
   treatment: string | null
   follow_up_date: string | null
   notes: string | null
+  deleted_at: string | null
   created_at: string
   updated_at: string
 }
@@ -182,9 +183,9 @@ export type HealthDocument = {
   profile_id: string
   visit_id: string | null
   category: DocumentCategory
-  title: string
+  file_name: string
+  file_type: string
   storage_path: string
-  mime_type: string
   file_size_bytes: number | null
   original_name: string | null
   notes: string | null

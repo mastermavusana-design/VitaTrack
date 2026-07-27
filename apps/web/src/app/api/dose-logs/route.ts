@@ -7,6 +7,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { captureException } from '@vitatrack/shared'
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error('[POST /api/dose-logs]', error)
+    captureException(error, { tags: { route: 'POST /api/dose-logs', status: String(body.status) } })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
@@ -112,7 +114,10 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureException(error, { tags: { route: 'GET /api/dose-logs' } })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   return NextResponse.json({ dose_logs: data ?? [] })
 }

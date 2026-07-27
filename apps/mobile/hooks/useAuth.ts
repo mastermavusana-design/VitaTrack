@@ -6,6 +6,7 @@ import * as LocalAuthentication from 'expo-local-authentication'
 import * as SecureStore from 'expo-secure-store'
 import { router } from 'expo-router'
 import { BIOMETRIC_LOCK_MINUTES } from '@vitatrack/shared'
+import { registerPushToken } from '@/notifications/handler'
 
 const LAST_ACTIVE_KEY = 'vitatrack_last_active'
 
@@ -105,15 +106,21 @@ export function useAuthInit() {
         user: session?.user ?? null,
         isLoading: false,
       })
+      // Register this device for push so caregiver-alert/refill crons can
+      // target it. Safe to call repeatedly (idempotent token upsert).
+      if (session) registerPushToken().catch(() => {})
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         useAuthStore.setState({
           session,
           user: session?.user ?? null,
           isLoading: false,
         })
+        if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          registerPushToken().catch(() => {})
+        }
       }
     )
 

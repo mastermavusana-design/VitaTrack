@@ -1,12 +1,14 @@
 /**
  * WatermelonDB schema definition
  * Mirrors the Supabase schema for offline-first local storage.
- * Tables: vitals, medications, medication_schedules, dose_logs
+ * Tables: vitals, medications, medication_schedules, dose_logs, doctor_visits
+ *
+ * NOTE: when bumping `version`, add a matching step in db/migrations.ts.
  */
 import { appSchema, tableSchema } from '@nozbe/watermelondb'
 
 export const schema = appSchema({
-  version: 1,
+  version: 2,
   tables: [
     tableSchema({
       name: 'vitals',
@@ -84,6 +86,28 @@ export const schema = appSchema({
         { name: 'notes',          type: 'string',  isOptional: true },
         { name: 'synced_at',      type: 'number',  isOptional: true },
         { name: 'is_dirty',       type: 'boolean', isOptional: true }, // needs push to server
+      ],
+    }),
+
+    tableSchema({
+      name: 'doctor_visits',
+      columns: [
+        { name: 'server_id',      type: 'string',  isOptional: true },
+        { name: 'profile_id',     type: 'string' },
+        { name: 'visit_date',     type: 'string' },   // YYYY-MM-DD
+        { name: 'visit_type',     type: 'string',  isOptional: true },
+        { name: 'provider_name',  type: 'string',  isOptional: true },
+        { name: 'specialty',      type: 'string',  isOptional: true },
+        { name: 'facility',       type: 'string',  isOptional: true },
+        { name: 'reason',         type: 'string',  isOptional: true },
+        { name: 'diagnosis',      type: 'string',  isOptional: true },
+        { name: 'treatment',      type: 'string',  isOptional: true },
+        { name: 'follow_up_date', type: 'string',  isOptional: true },
+        { name: 'notes',          type: 'string',  isOptional: true },
+        { name: 'server_updated_at', type: 'number', isOptional: true }, // for conflict resolution
+        { name: 'synced_at',      type: 'number',  isOptional: true },
+        { name: 'is_dirty',       type: 'boolean', isOptional: true }, // needs push to server
+        { name: 'is_deleted',     type: 'boolean', isOptional: true }, // soft delete
       ],
     }),
   ],

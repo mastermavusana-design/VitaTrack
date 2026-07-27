@@ -5,7 +5,10 @@ export const APP_VERSION = '1.0.0'
 export const SUPPORT_EMAIL = 'support@vitatrack.app'
 export const PRIVACY_POLICY_URL = 'https://vitatrack.app/privacy'
 export const TERMS_URL = 'https://vitatrack.app/terms'
-export const ICE_BASE_URL = 'https://vitatrack.app/ice'
+// Env-driven so mobile builds point at the right web host per environment.
+// Expo inlines EXPO_PUBLIC_* at build time; falls back to production.
+export const ICE_BASE_URL =
+  process.env.EXPO_PUBLIC_ICE_BASE_URL ?? 'https://vitatrack.app/ice'
 
 export const STORAGE_BUCKET = 'health-documents'
 export const MAX_FILE_SIZE_MB = 50

@@ -4,6 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { captureException, BLOOD_TYPES } from '@vitatrack/shared'
 
 export async function GET() {
   const supabase = createServerClient()
@@ -16,7 +17,10 @@ export async function GET() {
     .eq('id', session.user.id)
     .maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureException(error, { tags: { route: 'GET /api/profile' } })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ profile: data })
 }
 
@@ -40,6 +44,28 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
   }
 
+  // ── Value-level validation ──
+  if ('blood_type' in patch && patch.blood_type != null) {
+    if (!(BLOOD_TYPES as readonly string[]).includes(String(patch.blood_type))) {
+      return NextResponse.json(
+        { error: `blood_type must be one of: ${BLOOD_TYPES.join(', ')}` },
+        { status: 400 },
+      )
+    }
+  }
+  if ('date_of_birth' in patch && patch.date_of_birth != null) {
+    const dob = new Date(String(patch.date_of_birth))
+    if (Number.isNaN(dob.getTime())) {
+      return NextResponse.json({ error: 'date_of_birth must be a valid date' }, { status: 400 })
+    }
+    if (dob.getTime() > Date.now()) {
+      return NextResponse.json({ error: 'date_of_birth cannot be in the future' }, { status: 400 })
+    }
+  }
+  if ('full_name' in patch && typeof patch.full_name === 'string' && patch.full_name.length > 200) {
+    return NextResponse.json({ error: 'full_name must be 200 characters or fewer' }, { status: 400 })
+  }
+
   const { data, error } = await supabase
     .from('profiles')
     .update(patch)
@@ -47,6 +73,9 @@ export async function PATCH(req: NextRequest) {
     .select('id, full_name, blood_type, preferred_units, timezone')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureException(error, { tags: { route: 'PATCH /api/profile' } })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ profile: data })
 }

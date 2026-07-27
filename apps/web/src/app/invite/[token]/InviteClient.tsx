@@ -5,24 +5,18 @@ import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 interface InviteClientProps {
-  invite: {
-    id: string
-    owner_id: string
-    invite_token: string
-    owner: { full_name: string | null }
-  }
+  ownerName: string
+  role: string
   isLoggedIn: boolean
   token: string
 }
 
-export default function InviteClient({ invite, isLoggedIn, token }: InviteClientProps) {
+export default function InviteClient({ ownerName, role, isLoggedIn, token }: InviteClientProps) {
   const router = useRouter()
   const supabase = createClientComponentClient()
 
   const [isAccepting, setIsAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const ownerName = invite.owner.full_name ?? 'Someone'
 
   const handleAccept = async () => {
     if (!isLoggedIn) {
@@ -34,15 +28,15 @@ export default function InviteClient({ invite, isLoggedIn, token }: InviteClient
     setIsAccepting(true)
     setError(null)
 
-    const { error: updateError } = await supabase
-      .from('family_members')
-      .update({ status: 'accepted', accepted_at: new Date().toISOString() })
-      .eq('id', invite.id)
+    // Claim the invite atomically: sets invitee_id = auth.uid() and
+    // status = 'accepted' inside a SECURITY DEFINER RPC.
+    const { error: acceptError } = await supabase
+      .rpc('accept_family_invite', { p_token: token })
 
     setIsAccepting(false)
 
-    if (updateError) {
-      setError(updateError.message)
+    if (acceptError) {
+      setError(acceptError.message)
       return
     }
 
@@ -76,11 +70,14 @@ export default function InviteClient({ invite, isLoggedIn, token }: InviteClient
           '📊 Vitals history (BP, glucose, weight)',
           '🔔 Missed-dose alerts via push notification',
           '⚠️ Refill alerts when supply is low',
+          ...(role === 'dose_logger' ? ['💊 Log doses on their behalf'] : []),
         ].map((item, i) => (
           <p key={i} className="text-sm text-gray-700">{item}</p>
         ))}
         <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-blue-200">
-          🔒 Read-only access only. You cannot edit their health records.
+          {role === 'dose_logger'
+            ? '💊 Dose Logger access — you can record doses, but cannot edit their other health records.'
+            : '🔒 Read-only access. You cannot edit their health records.'}
         </p>
       </div>
 

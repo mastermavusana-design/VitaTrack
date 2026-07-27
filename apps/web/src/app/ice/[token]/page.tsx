@@ -4,14 +4,30 @@
  *
  * Accessible without authentication via a unique qr_token.
  * Readable by first responders after scanning a QR code.
- * Only shows fields marked is_public = true.
  *
- * RLS policy in DB: SELECT allowed where qr_token = :token AND is_public = true
+ * Security: reads through the SECURITY DEFINER RPC `get_public_ice_profile`,
+ * which returns only the QR-appropriate subset for one exact qr_token where
+ * is_public = TRUE. Anonymous clients have NO direct SELECT on ice_profiles,
+ * so the base table (and profile_id) can't be read or enumerated.
  */
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createPublicClient } from '@/lib/supabase'
 import type { ICEProfile, EmergencyContact } from '@vitatrack/shared'
+
+/** QR-appropriate subset returned by the get_public_ice_profile RPC. */
+type PublicICEProfile = Pick<
+  ICEProfile,
+  | 'blood_type'
+  | 'allergies'
+  | 'conditions'
+  | 'current_medications'
+  | 'emergency_contacts'
+  | 'organ_donor'
+  | 'do_not_resuscitate'
+  | 'additional_notes'
+  | 'qr_token'
+>
 
 interface PageProps {
   params: { token: string }
@@ -29,16 +45,13 @@ export default async function ICEPage({ params }: PageProps) {
   const { token } = params
   const supabase = createPublicClient()
 
-  const { data: ice, error } = await supabase
-    .from('ice_profiles')
-    .select('*')
-    .eq('qr_token', token)
-    .eq('is_public', true)
+  const { data, error } = await supabase
+    .rpc('get_public_ice_profile', { p_token: token })
     .maybeSingle()
 
-  if (error || !ice) notFound()
+  if (error || !data) notFound()
 
-  const iceProfile = ice as ICEProfile
+  const iceProfile = data as PublicICEProfile
 
   return (
     <div className="min-h-screen bg-red-50">

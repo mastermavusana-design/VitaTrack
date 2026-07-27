@@ -51,6 +51,13 @@ enable_signup = false
 
 # ─── Edge Function cron schedules ─────────────────────────────────────────────
 
+[functions.dose-materialize]
+# Every 15 min: create pending doses from schedules, reconcile against actual
+# logging, and expire truly-missed ones. Must run before caregiver-alert can
+# detect anything.
+verify_jwt = false
+schedule = "*/15 * * * *"
+
 [functions.caregiver-alert]
 # Fire every 10 minutes to detect missed doses
 verify_jwt = false

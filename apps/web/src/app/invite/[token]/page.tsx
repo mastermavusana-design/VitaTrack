@@ -23,24 +23,22 @@ export default async function InvitePage({ params }: PageProps) {
   const { token } = params
   const supabase = createServerClient()
 
-  // Look up the pending invite
+  // Preview the pending invite via a SECURITY DEFINER RPC. The invitee has no
+  // direct RLS SELECT on family_members before they've claimed the invite.
   const { data: invite, error } = await supabase
-    .from('family_members')
-    .select(`
-      id,
-      status,
-      owner_id,
-      invite_token,
-      owner:profiles!family_members_owner_id_fkey(full_name)
-    `)
-    .eq('invite_token', token)
+    .rpc('get_pending_invite', { p_token: token })
     .maybeSingle()
 
   if (error || !invite) notFound()
 
+  const inv = invite as { owner_name: string | null; invite_role: string; invite_status: string }
+
   // Already accepted
-  if ((invite as any).status === 'accepted') {
+  if (inv.invite_status === 'accepted') {
     redirect('/dashboard')
+  }
+  if (inv.invite_status === 'revoked') {
+    notFound()
   }
 
   const { data: { session } } = await supabase.auth.getSession()
@@ -48,7 +46,8 @@ export default async function InvitePage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
       <InviteClient
-        invite={invite as any}
+        ownerName={inv.owner_name ?? 'Someone'}
+        role={inv.invite_role}
         isLoggedIn={!!session}
         token={token}
       />

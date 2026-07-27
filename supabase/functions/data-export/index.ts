@@ -84,7 +84,7 @@ serve(async (req: Request) => {
     supabase.from('doctor_visits').select('*').eq('profile_id', userId).order('visit_date', { ascending: false }),
     supabase.from('health_documents').select('*').eq('profile_id', userId).order('created_at', { ascending: false }),
     supabase.from('ice_profiles').select('*').eq('profile_id', userId).maybeSingle(),
-    supabase.from('audit_log').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(1000),
+    supabase.from('audit_logs').select('*').eq('target_profile_id', userId).order('created_at', { ascending: false }).limit(1000),
   ])
 
   // ── Generate signed URLs for documents ──────────────────────────────────
@@ -183,12 +183,15 @@ CONTACT:
   }
 
   // ── Audit log ────────────────────────────────────────────────────────────
-  await supabase.from('audit_log').insert({
-    user_id:    userId,
-    action:     'data_export_requested',
-    resource:   'all',
-    ip_address: req.headers.get('x-forwarded-for') ?? 'unknown',
-    created_at: new Date().toISOString(),
+  // Canonical audit_logs table (actor == target for a self-service export).
+  // ip_address is INET-typed, so the raw x-forwarded-for value (which may be
+  // a comma-separated list) is stored in metadata rather than the column.
+  await supabase.from('audit_logs').insert({
+    actor_id:          userId,
+    target_profile_id: userId,
+    action:            'data_export_requested',
+    resource_type:     'all',
+    metadata:          { ip_address: req.headers.get('x-forwarded-for') ?? 'unknown' },
   })
 
   return new Response(

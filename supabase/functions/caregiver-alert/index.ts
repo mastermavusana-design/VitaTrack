@@ -8,9 +8,7 @@
  * Deploy:
  *   supabase functions deploy caregiver-alert --no-verify-jwt
  *
- * Cron (supabase/config.toml):
- *   [functions.caregiver-alert]
- *   schedule = "*/10 * * * *"
+ * Cron (supabase/config.toml): runs every 10 minutes.
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'

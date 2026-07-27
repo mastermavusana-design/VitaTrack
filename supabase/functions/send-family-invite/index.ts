@@ -67,13 +67,6 @@ serve(async (req: Request) => {
     )
   }
 
-  // Look up the invitee by email — they must already have an account
-  const { data: inviteeUser } = await supabase
-    .from('profiles')
-    .select('id, full_name')
-    .eq('email', inviteeEmail)
-    .maybeSingle()
-
   // Get the owner's name for the email
   const { data: ownerProfile } = await supabase
     .from('profiles')
@@ -84,14 +77,16 @@ serve(async (req: Request) => {
   const ownerName    = (ownerProfile as any)?.full_name ?? user.email
   const inviteToken  = generateToken()
 
-  // Insert family_members row
+  // Insert family_members row. invitee_id is intentionally left null here —
+  // it is set to the caregiver's uid when they claim the invite via the
+  // accept_family_invite() RPC (profiles has no email column to match on).
   const { error: insertError } = await supabase.from('family_members').insert({
-    owner_id:     ownerId,
-    invitee_id:   (inviteeUser as any)?.id ?? null,
+    owner_id:      ownerId,
+    invitee_id:    null,
     invitee_email: inviteeEmail,
-    invite_token: inviteToken,
-    status:       'pending',
-    invited_at:   new Date().toISOString(),
+    invite_token:  inviteToken,
+    status:        'pending',
+    invited_at:    new Date().toISOString(),
   })
 
   if (insertError) {

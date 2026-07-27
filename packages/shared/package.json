@@ -9,16 +9,22 @@
     "./types": "./src/types/index.ts",
     "./supabase": "./src/supabase/client.ts",
     "./utils": "./src/utils/index.ts",
-    "./constants": "./src/constants/index.ts"
+    "./constants": "./src/constants/index.ts",
+    "./validation": "./src/validation/index.ts",
+    "./monitoring": "./src/monitoring/index.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.0"
   },
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "@vitest/coverage-v8": "^1.6.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
   }
 }

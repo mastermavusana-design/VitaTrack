@@ -9,6 +9,19 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import {
+  captureException,
+  validateBloodPressure,
+  validateGlucose,
+  validateWeight,
+  validateTemperature,
+  validateSpo2,
+  validateHeartRate,
+  validatePulse,
+  type GlucoseUnit,
+  type WeightUnit,
+  type TempUnit,
+} from '@vitatrack/shared'
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
@@ -38,55 +51,82 @@ export async function POST(req: NextRequest) {
   }
 
   switch (body.type) {
-    case 'blood_pressure':
-      if (!body.systolic || !body.diastolic) {
+    case 'blood_pressure': {
+      if (body.systolic == null || body.diastolic == null) {
         return NextResponse.json({ error: 'Blood pressure requires systolic and diastolic' }, { status: 400 })
       }
-      payload.systolic    = Number(body.systolic)
-      payload.diastolic   = Number(body.diastolic)
-      payload.pulse       = body.pulse       ? Number(body.pulse)       : null
+      const systolic = Number(body.systolic)
+      const diastolic = Number(body.diastolic)
+      const check = validateBloodPressure(systolic, diastolic)
+      if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 })
+      if (body.pulse != null) {
+        const p = validatePulse(Number(body.pulse))
+        if (!p.ok) return NextResponse.json({ error: p.error }, { status: 400 })
+      }
+      payload.systolic    = systolic
+      payload.diastolic   = diastolic
+      payload.pulse       = body.pulse != null ? Number(body.pulse) : null
       payload.arm         = body.arm         ?? null
       payload.bp_position = body.bp_position ?? null
       break
+    }
 
-    case 'glucose':
-      if (!body.glucose_value) {
+    case 'glucose': {
+      if (body.glucose_value == null) {
         return NextResponse.json({ error: 'Glucose requires glucose_value' }, { status: 400 })
       }
+      const unit = (body.glucose_unit ?? 'mmol/L') as GlucoseUnit
+      const check = validateGlucose(Number(body.glucose_value), unit)
+      if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 })
       payload.glucose_value = Number(body.glucose_value)
-      payload.glucose_unit  = body.glucose_unit  ?? 'mmol/L'
+      payload.glucose_unit  = unit
       payload.meal_context  = body.meal_context  ?? null
       break
+    }
 
-    case 'weight':
-      if (!body.weight_value) {
+    case 'weight': {
+      if (body.weight_value == null) {
         return NextResponse.json({ error: 'Weight requires weight_value' }, { status: 400 })
       }
+      const unit = (body.weight_unit ?? 'kg') as WeightUnit
+      const check = validateWeight(Number(body.weight_value), unit)
+      if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 })
       payload.weight_value = Number(body.weight_value)
-      payload.weight_unit  = body.weight_unit  ?? 'kg'
+      payload.weight_unit  = unit
       break
+    }
 
-    case 'temperature':
-      if (!body.temp_value) {
+    case 'temperature': {
+      if (body.temp_value == null) {
         return NextResponse.json({ error: 'Temperature requires temp_value' }, { status: 400 })
       }
+      const unit = (body.temp_unit ?? '°C') as TempUnit
+      const check = validateTemperature(Number(body.temp_value), unit)
+      if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 })
       payload.temp_value = Number(body.temp_value)
-      payload.temp_unit  = body.temp_unit ?? '°C'
+      payload.temp_unit  = unit
       break
+    }
 
-    case 'spo2':
-      if (!body.spo2_value) {
+    case 'spo2': {
+      if (body.spo2_value == null) {
         return NextResponse.json({ error: 'SpO2 requires spo2_value' }, { status: 400 })
       }
+      const check = validateSpo2(Number(body.spo2_value))
+      if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 })
       payload.spo2_value = Number(body.spo2_value)
       break
+    }
 
-    case 'heart_rate':
-      if (!body.heart_rate) {
+    case 'heart_rate': {
+      if (body.heart_rate == null) {
         return NextResponse.json({ error: 'Heart rate requires heart_rate' }, { status: 400 })
       }
+      const check = validateHeartRate(Number(body.heart_rate))
+      if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 })
       payload.heart_rate = Number(body.heart_rate)
       break
+    }
   }
 
   const { data, error } = await supabase
@@ -97,6 +137,7 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error('[POST /api/vitals]', error)
+    captureException(error, { tags: { route: 'POST /api/vitals', type: String(body.type) } })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
@@ -139,7 +180,10 @@ export async function GET(req: NextRequest) {
     .order('recorded_at', { ascending: false })
     .limit(Math.min(limit, 500))
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureException(error, { tags: { route: 'GET /api/vitals' } })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   return NextResponse.json({ vitals: data ?? [] })
 }

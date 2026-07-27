@@ -4,6 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { captureException } from '@vitatrack/shared'
 
 export async function PATCH(
   req: NextRequest,
@@ -37,10 +38,28 @@ export async function PATCH(
   for (const key of allowed) {
     if (key in body) patch[key] = body[key]
   }
-  // Numeric coercions
-  if ('pill_count'       in patch) patch.pill_count       = patch.pill_count       ? Number(patch.pill_count)       : null
-  if ('refill_threshold' in patch) patch.refill_threshold = patch.refill_threshold ? Number(patch.refill_threshold) : null
-  if ('strength'         in patch) patch.strength         = patch.strength         ? Number(patch.strength)         : null
+  // Numeric coercions with non-negative validation
+  for (const numField of ['pill_count', 'refill_threshold', 'strength'] as const) {
+    if (numField in patch) {
+      const raw = patch[numField]
+      if (raw == null || raw === '') {
+        patch[numField] = null
+      } else {
+        const n = Number(raw)
+        if (!Number.isFinite(n) || n < 0) {
+          return NextResponse.json({ error: `${numField} must be a non-negative number` }, { status: 400 })
+        }
+        patch[numField] = n
+      }
+    }
+  }
+
+  if ('name' in patch) {
+    const name = typeof patch.name === 'string' ? patch.name.trim() : ''
+    if (!name) return NextResponse.json({ error: 'name cannot be empty' }, { status: 400 })
+    if (name.length > 200) return NextResponse.json({ error: 'name must be 200 characters or fewer' }, { status: 400 })
+    patch.name = name
+  }
 
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: 'No valid fields provided' }, { status: 400 })
@@ -53,7 +72,10 @@ export async function PATCH(
     .select('id, name, is_active, pill_count')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureException(error, { tags: { route: 'PATCH /api/medications/[id]' } })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ medication: data })
 }
 
@@ -80,6 +102,9 @@ export async function DELETE(
     .update({ is_active: false, archived_at: new Date().toISOString() })
     .eq('id', params.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    captureException(error, { tags: { route: 'DELETE /api/medications/[id]' } })
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ success: true })
 }
