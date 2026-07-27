@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand: #1A569B;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl border border-gray-200 shadow-sm;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .btn-primary {
+    @apply bg-brand-900 hover:bg-brand-700 text-white font-semibold rounded-xl px-5 py-2.5 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-brand-50 hover:bg-brand-100 text-brand-900 font-semibold rounded-xl px-5 py-2.5 transition-colors;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900
+           placeholder:text-gray-400 focus:border-brand-900 focus:outline-none focus:ring-2
+           focus:ring-brand-900/10 transition-colors;
+  }
+}

@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+.next/
+.turbo/
+.expo/
+web-build/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+
+# Environment (never commit real keys — keep only *.env.example)
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Expo / EAS
+apps/mobile/.expo/
+apps/mobile/google-services.json
+apps/mobile/google-services-dev.json
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
