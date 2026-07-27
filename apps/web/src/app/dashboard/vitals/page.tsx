@@ -1,5 +1,5 @@
 import { createServerClient } from '@/lib/supabase'
-import { classifyBP, classifyGlucose, formatDate, formatTime } from '@vitatrack/shared'
+import { classifyBP } from '@vitatrack/shared'
 import type { Vital, VitalType } from '@vitatrack/shared'
 import VitalsTable from '@/components/VitalsTable'
 import VitalsTrendChart from '@/components/VitalsTrendChart'

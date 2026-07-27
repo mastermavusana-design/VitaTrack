@@ -19,7 +19,7 @@ interface Props {
   userId: string
 }
 
-export default function CaregiversClient({ invites: initial, userId }: Props) {
+export default function CaregiversClient({ invites: initial }: Props) {
   const router = useRouter()
   const [invites, setInvites] = useState<Invite[]>(initial)
   const [email, setEmail]     = useState('')

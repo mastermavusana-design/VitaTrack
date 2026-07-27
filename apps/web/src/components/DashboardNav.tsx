@@ -11,7 +11,7 @@ interface DashboardNavProps {
   ownerId: string
 }
 
-export default function DashboardNav({ userEmail, userName, isCaregiver, ownerId }: DashboardNavProps) {
+export default function DashboardNav({ userEmail, userName, isCaregiver }: DashboardNavProps) {
   const router = useRouter()
   const [isSigningOut, setIsSigningOut] = useState(false)
 

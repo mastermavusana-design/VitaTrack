@@ -17,7 +17,7 @@ interface PageProps {
   params: { token: string }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata(_props: PageProps): Promise<Metadata> {
   return {
     title: 'Emergency Health Profile — VitaTrack',
     description: 'In Case of Emergency — medical information for first responders',
@@ -99,11 +99,11 @@ export default async function ICEPage({ params }: PageProps) {
         ) : null}
 
         {/* Medications */}
-        {iceProfile.medications?.length ? (
+        {iceProfile.current_medications?.length ? (
           <div className="card p-5">
             <h2 className="text-xs font-black uppercase tracking-widest text-gray-500 mb-3">💊 Current Medications</h2>
             <ul className="space-y-2">
-              {iceProfile.medications.map((m: string, i: number) => (
+              {iceProfile.current_medications.map((m: string, i: number) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-gray-800">
                   <span className="text-blue-500 mt-0.5">•</span>
                   {m}

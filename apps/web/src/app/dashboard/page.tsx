@@ -225,7 +225,7 @@ export default async function DashboardPage() {
 }
 
 function VitalCard({
-  icon, label, value, unit, sub, badge, time,
+  icon: _icon, label, value, unit, sub, badge, time,
 }: {
   icon: string
   label: string

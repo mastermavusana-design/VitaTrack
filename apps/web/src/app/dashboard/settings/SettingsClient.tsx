@@ -52,29 +52,31 @@ export default function SettingsClient({ profile, email, userId }: Props) {
   const handleSave = async () => {
     setError(null)
     setSaved(false)
-    startTransition(async () => {
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert({
-          id:             userId,
-          full_name:      fullName.trim(),
-          date_of_birth:  dob || null,
-          blood_type:     bloodType,
-          phone:          phone.trim() || null,
-          timezone,
-          preferred_units: {
-            glucose:     glucoseUnit,
-            weight:      weightUnit,
-            temperature: tempUnit,
-          },
-        })
-      if (upsertError) {
-        setError(upsertError.message)
-      } else {
-        setSaved(true)
-        router.refresh()
-        setTimeout(() => setSaved(false), 3000)
-      }
+    startTransition(() => {
+      void (async () => {
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert({
+            id:             userId,
+            full_name:      fullName.trim(),
+            date_of_birth:  dob || null,
+            blood_type:     bloodType,
+            phone:          phone.trim() || null,
+            timezone,
+            preferred_units: {
+              glucose:     glucoseUnit,
+              weight:      weightUnit,
+              temperature: tempUnit,
+            },
+          })
+        if (upsertError) {
+          setError(upsertError.message)
+        } else {
+          setSaved(true)
+          router.refresh()
+          setTimeout(() => setSaved(false), 3000)
+        }
+      })()
     })
   }
 

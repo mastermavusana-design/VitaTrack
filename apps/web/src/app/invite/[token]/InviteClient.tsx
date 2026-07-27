@@ -17,10 +17,7 @@ interface InviteClientProps {
 
 export default function InviteClient({ invite, isLoggedIn, token }: InviteClientProps) {
   const router = useRouter()
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  )
+  const supabase = createClientComponentClient()
 
   const [isAccepting, setIsAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
