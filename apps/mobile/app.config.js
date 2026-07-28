@@ -112,6 +112,13 @@ module.exports = {
       'expo-web-browser',
     ],
 
+    updates: {
+      url: 'https://u.expo.dev/01a4a792-812e-4207-b3f5-e3e07818ef3a',
+    },
+    runtimeVersion: {
+      policy: 'appVersion',
+    },
+
     experiments: {
       typedRoutes: true,
     },
