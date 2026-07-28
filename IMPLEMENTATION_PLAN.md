@@ -55,6 +55,32 @@ Ordered by severity. Items marked **[blocker]** stop a build or a store submissi
 
 These exist in the schema/backend but need a UI/flow check before calling them done: document upload to Supabase Storage (table + web category exist; confirm mobile capture → upload → signed-URL retrieval works end-to-end), caregiver `dose_logger` write path, push-token registration writing to `push_tokens`/`profiles.expo_push_token` (the cron functions depend on it), and the `data-export` ZIP actually generating and emailing.
 
+### 3.4 Vision-coverage gaps (product vision vs. schema)
+
+Section 3.1–3.3 covers *hardening what's built*. This section covers *what the vision promises but the schema does not yet deliver*. Mapping the nine advertised pillars against the actual data model:
+
+| Pillar | Status | Where it lives today |
+|---|---|---|
+| Medication reminders | ✅ Strong | `medication_schedules` + dose materialization + local/push notifications + `caregiver-alert`/`refill-daily` cron |
+| Vital signs | ✅ Strong | `vitals` (BP, glucose, weight, temp, SpO₂, HR) + scan-capture provenance |
+| Doctor visits | ✅ Strong | `doctor_visits` (diagnosis, treatment, follow-up, document links) |
+| Lab results | ✅ Good | `lab_results` (analyte, LOINC, value, reference range, abnormal flag, source) |
+| Prescriptions | ⚠️ Thin / conflated | Split between `medications` ("what I take") and `documents.category = 'prescription'` (a scanned file). No true prescription entity (Rx number, pharmacy, refills authorized, prescriber practice number). |
+| Medical history | ⚠️ Thin | `doctor_visits` (free text) + `ice_profiles.conditions[]` (free-text array on the emergency card). No structured problem/condition list. |
+| Allergies | ⚠️ Emergency-only | Only `ice_profiles.allergies TEXT[]`. Free text, no reaction/severity, no drug-allergy cross-check. |
+| Vaccinations | ❌ Missing | No table. `documents.category` enum cannot even file an immunization record. |
+| Wearable integration | ❌ Missing | Only a free-text `vitals.device` column; `source` enum has no device-stream value. No HealthKit / Health Connect / Fitbit / Garmin ingest. |
+
+Four pillars are genuinely delivered, three are thin, two are absent. The full build-out of the missing pillars — plus the **child health record** (Road to Health Booklet) direction — is scoped in Phase 5 and detailed in §8–9.
+
+Priority within the gap set (safety- and market-value-weighted):
+
+1. **Allergies** as a first-class table + drug-allergy check at medication-add time — safety-critical for a med tracker, small effort.
+2. **Conditions / problem list** — the missing backbone of "medical history"; allergies, meds, and visits should reference it.
+3. **Child health record / vaccinations** — see §8; high market value in SA, self-contained.
+4. **Prescriptions** — decide whether it's a clinical/legal record or just the med list (§9.4).
+5. **Wearables** — the one genuine epic; a candidate to *explicitly defer* out of v1 rather than half-build.
+
 ---
 
 ## 4. Recommended scope & phasing
@@ -103,6 +129,17 @@ Establish the new repo and a clean build before touching features.
 
 **Rough total:** ~9–15 working days to launch-ready, dominated by Phases 2–4. Phases 0–1 (the "make it correct and safe" work) are ~2–3 days and I'd do them first regardless of how far you take the rest.
 
+### Phase 5 — Vision expansion: child health record & missing pillars (post-v1, ~10–18 days)
+This is a **v1.x product expansion**, not launch-blocking. It closes the gaps in §3.4 and adds the child health record (§8). Sequence by value and effort:
+
+20. **Allergies + conditions** (2–3 days). Add `allergies` and `conditions` tables (§9.1–9.2), migrate the free-text `ice_profiles` arrays into them (keep the ICE card as a derived/denormalized view), and add a drug-allergy check on the medication-add flow.
+21. **Dependants model** (1–2 days). Add managed child profiles a guardian owns outright (distinct from adult-to-adult `family_members` sharing) — see §8.1. This is the prerequisite for everything child-related.
+22. **Vaccinations + Road to Health Booklet** (4–6 days). Immunization schedule, growth monitoring, and milestones (§8.2–8.4); reuse the camera-capture pipeline to digitize physical RtHB pages and the scheduler for booster due-dates.
+23. **Prescriptions decision** (1–3 days). If choosing the clinical-record path, add the `prescriptions` entity (§9.4) and link `medications` to it.
+24. **Wearables** (5–8 days, or defer). HealthKit / Health Connect read integration + one cloud provider (Fitbit or Garmin) with dedup and stream-aware storage (§9.5). Decide explicitly whether this is in v1.x or a later milestone.
+
+**Exit:** child health record usable end-to-end (add a child → record/scan vaccines → see growth chart → get booster reminders); allergies and conditions structured with a drug-allergy check; a clear, documented decision on prescriptions and wearables.
+
 ---
 
 ## 5. Canonical environment matrix (to standardise in Phase 1)
@@ -135,3 +172,183 @@ Establish the new repo and a clean build before touching features.
 3. Fresh `pnpm install` and confirm type-check + build pass.
 
 Tell me to proceed and I'll execute Phase 0 in the new folder, then we can walk into Phase 1.
+
+---
+
+## 8. Child health record — digitizing the Road to Health Booklet (RtHB)
+
+**The idea.** Every South African child is issued a paper **Road to Health Booklet** — the patient-held record of immunisations, growth, and developmental milestones, used across both public and private care. It gets lost, water-damaged, and left at home exactly when a clinic needs it. A digital RtHB inside VitaTrack is a strong, market-specific hook: it turns the three missing/thin pillars (vaccinations, medical history, and — via growth/vitals — vital signs) into one coherent, emotionally sticky feature for parents, and it slots naturally onto the existing camera-capture, scheduler, and caregiver-sharing infrastructure.
+
+**Why it fits the current architecture.**
+- **Camera capture** already exists (`scan_captures`, `extract-reading` Edge Function, on-device + cloud OCR). Photographing the physical RtHB pages to bootstrap the digital record is the same pipeline pointed at a new artifact type.
+- **The scheduler** that drives medication reminders is the same machinery needed for **vaccine booster due-dates** — a due-date is just a schedule with a different payload.
+- **Caregiver sharing** (`family_members`, `is_family_member`) is close to what's needed, but a child is a *dependant the guardian owns*, not a peer who shares back — so it needs a distinct model (§8.1).
+
+### 8.1 Dependants (managed child profiles)
+Adult-to-adult sharing (`family_members`) is the wrong shape for a child: the child has no `auth.users` login, and the guardian needs full read/write, not viewer/dose_logger. Add a lightweight dependant profile the guardian owns:
+
+```sql
+CREATE TABLE dependants (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  guardian_id   UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  full_name     TEXT NOT NULL,
+  date_of_birth DATE NOT NULL,
+  sex           TEXT CHECK (sex IN ('male','female')),          -- WHO growth standards are sex-specific
+  birth_weight_g   INTEGER,
+  gestational_age_wk NUMERIC,                                    -- for preterm growth correction
+  relationship  TEXT,                                           -- 'child','grandchild','ward'...
+  rthb_number   TEXT,                                           -- printed RtHB / clinic number
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+**Design decision to make:** do child records hang off a `dependant_id`, or does every dependant get a real `profiles` row (so the child can later "graduate" to owning their own account at 18)? Recommendation: give dependants their own `profiles` row flagged `is_dependant = TRUE` with a nullable `auth.users` link, so vaccinations/vitals/labs can reuse `profile_id` unchanged and account graduation is just linking a login. Revisit RLS: guardian access via a `is_guardian_of(profile)` helper mirroring `is_family_member`.
+
+### 8.2 Immunisations
+The EPI-SA schedule was revised — as of the **January 2024** update, the combined **measles-rubella (MR)** vaccine replaced measles-alone, and a **Tdap booster at 6 years** replaced the old Td. A further revision is in circulation for 2025. So the schedule must be **data-driven, not hard-coded** — store the recommended schedule as seed data and version it, so a schedule change is a data migration, not an app release.
+
+```sql
+-- Reference: the recommended schedule (seeded, versioned)
+CREATE TABLE vaccine_schedule (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  schedule_ver  TEXT NOT NULL,             -- 'EPI-SA-2024.1'
+  vaccine_code  TEXT NOT NULL,             -- 'BCG','OPV','HexaXIM','PCV','RV','MR','Tdap'...
+  vaccine_name  TEXT NOT NULL,
+  dose_label    TEXT NOT NULL,             -- 'birth','6 weeks','10 weeks','6 years'...
+  offset_days   INTEGER NOT NULL,          -- from date of birth
+  UNIQUE (schedule_ver, vaccine_code, dose_label)
+);
+
+-- Per-child administered / due doses
+CREATE TABLE immunisations (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  profile_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  vaccine_code  TEXT NOT NULL,
+  vaccine_name  TEXT NOT NULL,
+  dose_label    TEXT,                      -- links to schedule dose
+  status        TEXT NOT NULL DEFAULT 'due'
+                CHECK (status IN ('due','given','skipped','contraindicated')),
+  due_date      DATE,
+  given_date    DATE,
+  batch_lot     TEXT,
+  site          TEXT,                      -- 'left thigh','right arm'...
+  facility      TEXT,
+  administered_by TEXT,
+  source        TEXT NOT NULL DEFAULT 'manual'
+                CHECK (source IN ('manual','scan','import')),
+  capture_id    UUID REFERENCES scan_captures(id) ON DELETE SET NULL,
+  cert_document_id UUID REFERENCES documents(id) ON DELETE SET NULL,  -- yellow-fever / COVID cert
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_immunisations_profile ON immunisations(profile_id);
+```
+
+On adding a child, expand the active `vaccine_schedule` into per-child `immunisations` rows with computed `due_date = DOB + offset_days`; the existing reminder scheduler fires on `due_date`. Add `'immunization'` and `'growth_chart'` to the `documents.category` enum so certificates and scanned RtHB pages can be filed. Extend `scan_captures.artifact` with `'rthb'`.
+
+### 8.3 Growth monitoring
+The RtHB's core is the growth curve. Store discrete measurements and compute z-scores / percentiles against the **WHO Child Growth Standards** (a pure, testable util — same pattern as the existing BP classifier and glucose converter in `packages/shared`).
+
+```sql
+CREATE TABLE growth_measurements (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  profile_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  measured_at   DATE NOT NULL,
+  weight_kg     NUMERIC,
+  length_cm     NUMERIC,                   -- length (lying) vs height (standing)
+  head_circ_cm  NUMERIC,
+  muac_cm       NUMERIC,                   -- mid-upper-arm circumference (malnutrition screen)
+  source        TEXT NOT NULL DEFAULT 'manual'
+                CHECK (source IN ('manual','scan','import')),
+  capture_id    UUID REFERENCES scan_captures(id) ON DELETE SET NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_growth_profile ON growth_measurements(profile_id, measured_at);
+```
+
+Add `packages/shared/src/utils/growth.ts`: `weightForAgeZ`, `lengthForAgeZ`, `weightForLengthZ`, `headCircForAgeZ`, taking sex + age-in-days, returning z-score and percentile, with flags for the WHO cut-offs (e.g. underweight < −2 SD, severe < −3 SD). Ship the WHO LMS reference tables as bundled JSON. Chart on the mobile/web dashboard with Recharts, overlaying the standard percentile bands.
+
+### 8.4 Developmental milestones
+The RtHB tracks milestones by age band (smiles, sits, walks, first words). Model as a seeded checklist plus per-child status:
+
+```sql
+CREATE TABLE milestones (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  profile_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  domain        TEXT,                      -- 'motor','language','social','cognitive'
+  milestone     TEXT NOT NULL,
+  expected_age_band TEXT,                  -- '6-9 months'
+  status        TEXT NOT NULL DEFAULT 'not_yet'
+                CHECK (status IN ('not_yet','achieved','concern')),
+  achieved_on   DATE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+A `'concern'` flag (milestone overdue for age band) is a natural, gentle nudge to see a clinician — surfaced, never alarmist.
+
+### 8.5 RtHB digitisation flow (the hook)
+1. Guardian adds a child (§8.1).
+2. "Scan your Road to Health Booklet" → camera captures the immunisation and growth pages → `extract-reading` returns structured fields → guardian reviews low-confidence fields (existing review UI) → rows written to `immunisations` / `growth_measurements` with `source = 'scan'` and a `capture_id` for provenance.
+3. From date of birth + the active schedule, VitaTrack computes what's **due next** and sets reminders.
+4. Growth chart renders immediately from the scanned history.
+
+This is the demo that sells the app to a parent: photograph the paper card, and the phone instantly knows the next clinic date and whether the child is growing on track.
+
+### 8.6 Compliance & safety notes
+- **Children's data under POPIA** is special-personal information requiring *competent person* (guardian) consent — extend the existing `popia_consent` capture to record guardian consent per dependant, and make the `data-export` (right-of-access) and deletion paths dependant-aware.
+- Growth flags and milestone "concern" states are **screening prompts, not diagnoses** — copy must be non-alarmist and always route to a real clinician. Keep any interpretive text in `packages/shared` so it's reviewed and testable.
+- The digital record **supplements** the paper RtHB; do not imply it replaces the official document clinics still stamp.
+
+---
+
+## 9. Proposed schema for the other missing pillars
+
+Sketches to accompany §3.4 (details deferred to Phase 5 implementation).
+
+### 9.1 Allergies
+```sql
+CREATE TABLE allergies (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  profile_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  allergen      TEXT NOT NULL,
+  allergen_type TEXT CHECK (allergen_type IN ('drug','food','environmental','other')),
+  reaction      TEXT,
+  severity      TEXT CHECK (severity IN ('mild','moderate','severe','anaphylaxis')),
+  status        TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive','resolved')),
+  verified      BOOLEAN NOT NULL DEFAULT FALSE,
+  noted_at      DATE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+Keep the ICE emergency card's `allergies[]` as a **denormalised projection** of the `active` rows, not the source of truth. Add a drug-allergy check when a medication is added.
+
+### 9.2 Conditions / problem list (backbone of "medical history")
+```sql
+CREATE TABLE conditions (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  profile_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  name          TEXT NOT NULL,
+  icd10_code    TEXT,
+  category      TEXT CHECK (category IN ('chronic','acute','surgical','family_history','mental_health','other')),
+  status        TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','resolved','in_remission')),
+  onset_date    DATE,
+  resolved_date DATE,
+  notes         TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+Let `medications`, `doctor_visits`, and `allergies` optionally reference a `condition_id` so history is linked rather than scattered.
+
+### 9.3 Interoperability note
+Labs already carry LOINC. Model these new tables with **FHIR** resource shapes in mind — `AllergyIntolerance`, `Condition`, `Immunization`, `MedicationStatement`, `Observation` (growth) — even if you don't ship a FHIR API in v1. It's near-free at design time and avoids a rewrite if clinician import/export ever matters. Use ICD-10 for conditions (SA private sector already codes in ICD-10 for billing).
+
+### 9.4 Prescriptions (decision, not just a table)
+Decide the entity's meaning before building:
+- **Option A — keep as-is:** `medications` = the med list; a "prescription" is just a scanned document. Cheapest; fine for a self-tracking app.
+- **Option B — clinical record:** add a `prescriptions` table (prescriber name + HPCSA/practice number, Rx date, pharmacy, refills authorised/remaining, ICD-10) and link `medications.prescription_id`. Needed if you ever want refill authorisation tracking or clinician trust.
+
+Recommendation: A for launch, B when pharmacy/refill features are on the roadmap.
+
+### 9.5 Wearables (the epic — scope explicitly)
+Not a table, an integration layer: platform SDKs (**Apple HealthKit**, **Android Health Connect**) for on-device reads, plus OAuth to one cloud provider (**Fitbit** or **Garmin**) to start. Requirements that don't exist yet: a `'device_sync'` value in the `vitals.source` enum, a per-source provenance/external-id column for **deduplication** against manual entries, background sync, and a storage decision for high-frequency streams (HR, steps) that the row-per-reading `vitals` shape handles badly — consider a separate `wearable_samples` table or aggregation on ingest. Given the size, **the honest recommendation is to defer wearables past v1.x** rather than half-build it.

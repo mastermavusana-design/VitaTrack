@@ -63,7 +63,7 @@ Fill in `[bracketed]` items before submission.
 > • Help first responders help you
 >
 > PRIVACY FIRST
-> • Your health data is stored in South Africa (POPIA-aligned)
+> • Your health data is hosted in the UK/EU under POPIA-compliant safeguards
 > • Row-level security, encryption, and a biometric app lock
 > • Export or delete your data at any time
 >

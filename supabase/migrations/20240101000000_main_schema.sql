@@ -7,8 +7,13 @@
 -- ============================================================
 
 -- ─── Extensions ──────────────────────────────────────────────
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- On Supabase, extensions install into the dedicated `extensions` schema,
+-- which is NOT on the migration login role's default search_path. Install
+-- them there explicitly and add it to the search_path so uuid_generate_v4()
+-- and gen_random_bytes() resolve in column defaults below.
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS "pgcrypto"  WITH SCHEMA extensions;
+SET search_path = public, extensions;
 
 -- ─── Utility: updated_at trigger function ────────────────────
 CREATE OR REPLACE FUNCTION set_updated_at()

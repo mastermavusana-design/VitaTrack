@@ -43,9 +43,15 @@ export default function VitalsScreen() {
       {/* Header */}
       <View style={s.header}>
         <Text style={s.headerTitle}>📊 Vitals</Text>
-        <TouchableOpacity style={s.addBtn} onPress={() => router.push(`/(app)/vitals/add?type=${activeTab}`)}>
-          <Text style={s.addBtnText}>＋</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={s.addBtn}
+            onPress={() => router.push(`/(app)/vitals/scan?artifact=device_screen&vitalType=${activeTab}`)}>
+            <Text style={s.addBtnText}>⧉</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.addBtn} onPress={() => router.push(`/(app)/vitals/add?type=${activeTab}`)}>
+            <Text style={s.addBtnText}>＋</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Type tabs */}

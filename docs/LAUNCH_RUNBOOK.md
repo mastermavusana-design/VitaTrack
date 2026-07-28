@@ -26,8 +26,11 @@ Order: **Supabase (backend) → Vercel (web) → EAS (mobile) → store submissi
 
 ## 1. Supabase production project **[credentials]**
 
-1. Create the project in the **AWS Africa (Cape Town) `af-south-1`** region
-   (POPIA data-residency). Note the project ref, URL, anon key, and service-role key.
+1. Create the project in the **AWS Europe (London) `eu-west-2`** region. Supabase
+   no longer offers `af-south-1` (Cape Town) for new projects; London is the chosen
+   region. POPIA §72 permits this via adequate protection (UK GDPR) + explicit consent
+   — **sign the Supabase Data Processing Addendum (DPA)** to lock in the "binding
+   agreement" basis. Note the project ref, URL, anon key, and service-role key.
 
 2. Link the CLI and push the schema (runs all migrations in `supabase/migrations`):
    ```bash
@@ -67,8 +70,9 @@ Order: **Supabase (backend) → Vercel (web) → EAS (mobile) → store submissi
 ## 2. Vercel web deployment **[credentials]**
 
 1. Import the Git repo into Vercel. Set **Root Directory = `apps/web`**.
-   `apps/web/vercel.json` pins the framework, the `cpt1` (Cape Town) region, and
-   the monorepo install/build commands.
+   `apps/web/vercel.json` pins the framework, the `lhr1` (London) region — co-located
+   with the Supabase `eu-west-2` DB to minimise query latency — and the monorepo
+   install/build commands.
 
 2. Set Environment Variables (Production):
    | Variable | Value |

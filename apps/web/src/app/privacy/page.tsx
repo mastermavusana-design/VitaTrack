@@ -93,7 +93,7 @@ export default function PrivacyPolicyPage() {
           POPIA) who process it on our behalf under written agreements, and with people you choose:
         </p>
         <ul className="list-disc space-y-1 pl-6">
-          <li><strong>Supabase</strong> — database, authentication, and file storage, hosted in the AWS Africa (Cape Town / <code>af-south-1</code>) region.</li>
+          <li><strong>Supabase</strong> — database, authentication, and file storage, hosted in the AWS Europe (London / <code>eu-west-2</code>) region, under a Data Processing Addendum.</li>
           <li><strong>Resend</strong> — delivery of transactional emails (caregiver invitations, data-export links).</li>
           <li><strong>Expo / Apple / Google</strong> — delivery of push notifications to your device.</li>
           <li><strong>Vercel</strong> — hosting of the VitaTrack web application.</li>
@@ -107,11 +107,25 @@ export default function PrivacyPolicyPage() {
 
       <LegalSection id="cross-border" heading="6. Cross-border transfers">
         <p>
-          Your primary health data is stored in South Africa (the AWS <code>af-south-1</code>
-          region). Some Operators (for email and push-notification delivery) may process limited
-          data outside South Africa. Where this occurs, we ensure the recipient is subject to laws,
-          binding agreements, or rules that provide an adequate level of protection, as required by
-          section 72 of POPIA.
+          Your health data is stored and processed outside South Africa, in the United Kingdom
+          (the AWS Europe / London <code>eu-west-2</code> region), and some Operators (for email
+          and push-notification delivery) may process limited data elsewhere. POPIA permits these
+          transfers under <strong>section 72</strong>, and we rely on two independent bases for them:
+        </p>
+        <ul className="list-disc space-y-1 pl-6">
+          <li>
+            <strong>Adequate protection.</strong> Our hosting and Operators are bound by written
+            data-processing agreements and operate under the UK/EU GDPR, which provides a level of
+            protection substantially similar to POPIA, including on onward transfers.
+          </li>
+          <li>
+            <strong>Your explicit consent.</strong> When you create an account and add health data,
+            you consent to this processing and to the cross-border transfer described here.
+          </li>
+        </ul>
+        <p>
+          There is no legal requirement under POPIA to store your data inside South Africa; what
+          the law requires is the adequate protection described above, which we maintain.
         </p>
       </LegalSection>
 

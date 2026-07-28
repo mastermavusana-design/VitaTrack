@@ -2,6 +2,10 @@
 -- VitaTrack helper functions (run after main schema)
 -- ─────────────────────────────────────────────────────────────────────────────
 
+-- Ensure extension functions (gen_random_bytes) resolve on Supabase, where
+-- extensions live in the `extensions` schema off the default search_path.
+SET search_path = public, extensions;
+
 -- 1. RPC used by caregiver-alert Edge Function
 --    Returns overdue pending doses (past cutoff) with caregiver push tokens
 CREATE OR REPLACE FUNCTION get_overdue_doses_for_caregiver(cutoff_time TIMESTAMPTZ)

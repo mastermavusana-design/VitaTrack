@@ -11,11 +11,12 @@
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
-    "typescript": "^5.4.0",
     "@types/node": "^20.0.0",
+    "eslint": "^8.57.0",
     "prettier": "^3.2.0",
-    "eslint": "^8.57.0"
+    "supabase": "^2.110.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
