@@ -25,7 +25,8 @@ type ParsedDsn = {
 let cachedDsn: ParsedDsn | null | undefined
 
 function readDsnString(): string | undefined {
-  const env = (typeof process !== 'undefined' && process.env) || {}
+  const env: Record<string, string | undefined> =
+    typeof process !== 'undefined' && process.env ? process.env : {}
   return (
     env.SENTRY_DSN ||
     env.NEXT_PUBLIC_SENTRY_DSN ||
