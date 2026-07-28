@@ -13,7 +13,7 @@ Order: **Supabase (backend) → Vercel (web) → EAS (mobile) → store submissi
 - [ ] `pnpm install && pnpm type-check && pnpm build` all pass locally.
 - [ ] `pnpm --filter @vitatrack/shared test` passes.
 - [ ] Decide the production web domain. Default is the Vercel domain
-      `vitatrack.vercel.app`. If you attach a custom domain, update:
+      `vita-track-life.vercel.app`. If you attach a custom domain, update:
   - `WEB_BASE_URL` in `packages/shared/src/constants/index.ts`
   - all URLs in `docs/STORE_LISTING.md`
   - the `EXPO_PUBLIC_ICE_BASE_URL` / `NEXT_PUBLIC_ICE_BASE_URL` env values
@@ -40,7 +40,7 @@ Order: **Supabase (backend) → Vercel (web) → EAS (mobile) → store submissi
 
 3. Set function secrets:
    ```bash
-   supabase secrets set RESEND_API_KEY=<key> WEB_BASE_URL=https://vitatrack.vercel.app
+   supabase secrets set RESEND_API_KEY=<key> WEB_BASE_URL=https://vita-track-life.vercel.app
    ```
 
 4. Deploy the Edge Functions:
@@ -80,8 +80,8 @@ Order: **Supabase (backend) → Vercel (web) → EAS (mobile) → store submissi
    | `NEXT_PUBLIC_SUPABASE_URL` | prod URL |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | prod anon key |
    | `SUPABASE_SERVICE_ROLE_KEY` | prod service-role key (server only) |
-   | `NEXT_PUBLIC_APP_URL` | https://vitatrack.vercel.app |
-   | `NEXT_PUBLIC_ICE_BASE_URL` | https://vitatrack.vercel.app/ice |
+   | `NEXT_PUBLIC_APP_URL` | https://vita-track-life.vercel.app |
+   | `NEXT_PUBLIC_ICE_BASE_URL` | https://vita-track-life.vercel.app/ice |
    | `RESEND_API_KEY` | Resend key |
    | `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` | optional |
 

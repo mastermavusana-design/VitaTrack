@@ -16,10 +16,10 @@ Fill in `[bracketed]` items before submission.
 | Primary category | Medical |
 | Secondary category | Health & Fitness |
 | Default language | English (South Africa) |
-| Support URL | https://vitatrack.vercel.app |
-| Marketing URL | https://vitatrack.vercel.app |
-| Privacy Policy URL | https://vitatrack.vercel.app/privacy |
-| Terms URL | https://vitatrack.vercel.app/terms |
+| Support URL | https://vita-track-life.vercel.app |
+| Marketing URL | https://vita-track-life.vercel.app |
+| Privacy Policy URL | https://vita-track-life.vercel.app/privacy |
+| Terms URL | https://vita-track-life.vercel.app/terms |
 | Support email | support@vitatrack.co.za |
 | Price | Free |
 

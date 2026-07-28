@@ -5,7 +5,7 @@ export const APP_VERSION = '1.0.0'
 export const SUPPORT_EMAIL = 'support@vitatrack.co.za'
 // Canonical web host. Points at the Vercel deployment domain for launch.
 // Update WEB_BASE_URL if a custom domain is later attached in Vercel.
-export const WEB_BASE_URL = 'https://vitatrack.vercel.app'
+export const WEB_BASE_URL = 'https://vita-track-life.vercel.app'
 export const PRIVACY_POLICY_URL = `${WEB_BASE_URL}/privacy`
 export const TERMS_URL = `${WEB_BASE_URL}/terms`
 // Env-driven so mobile builds point at the right web host per environment.
