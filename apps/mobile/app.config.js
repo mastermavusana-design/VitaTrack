@@ -72,9 +72,15 @@ module.exports = {
         'VIBRATE',
         'POST_NOTIFICATIONS',
       ],
-      ...(process.env.EAS_BUILD ? {
-        googleServicesFile: IS_DEV ? './google-services-dev.json' : './google-services.json',
-      } : {}),
+      // Only attach the Firebase config if it's actually present. This lets
+      // test/preview builds succeed without FCM (dose reminders use LOCAL
+      // notifications). Add google-services.json later to enable remote push.
+      ...(() => {
+        const file = IS_DEV ? './google-services-dev.json' : './google-services.json'
+        return process.env.EAS_BUILD && require('fs').existsSync(file)
+          ? { googleServicesFile: file }
+          : {}
+      })(),
     },
 
     web: {
@@ -112,11 +118,11 @@ module.exports = {
 
     extra: {
       eas: {
-        projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? 'FILL_IN_EAS_PROJECT_ID',
+        projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '01a4a792-812e-4207-b3f5-e3e07818ef3a',
       },
       supabaseUrl:    process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseKey:    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      iceBaseUrl:     process.env.EXPO_PUBLIC_ICE_BASE_URL ?? 'https://app.vitatrack.co.za/ice',
+      iceBaseUrl:     process.env.EXPO_PUBLIC_ICE_BASE_URL ?? 'https://vita-track-life.vercel.app/ice',
     },
   },
 }
