@@ -110,6 +110,10 @@ module.exports = {
       'expo-secure-store',
       'expo-document-picker',
       'expo-web-browser',
+      // Wires WatermelonDB's native Android build during prebuild. JSI is
+      // disabled to match the app's bridge SQLiteAdapter and avoid the
+      // duplicate libc++_shared.so packaging error.
+      ['@morrowdigital/watermelondb-expo-plugin', { disableJsi: true }],
     ],
 
     updates: {
