@@ -11,8 +11,8 @@
       "ios": { "simulator": true },
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://fgykbsidrxpwfuwmefvc.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZneWtic2lkcnhwd2Z1d21lZnZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTM4NDAsImV4cCI6MjEwMDc4OTg0MH0.oKL3Jfw2gag2aeI2vzFGg9vkFgl72TE60on1nC5d__8",
         "EXPO_PUBLIC_ICE_BASE_URL": "http://localhost:3000/ice"
       }
     },
