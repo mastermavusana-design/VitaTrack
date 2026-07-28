@@ -173,7 +173,7 @@ export default function LoginClient({ returnTo }: { returnTo?: string }) {
             {isLoading ? 'Creating account…' : 'Create Account'}
           </button>
           <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>
-            By signing up you agree to our Privacy Policy. Your data is stored in South Africa.
+            By signing up you agree to our Privacy Policy. Your data is protected under POPIA.
           </p>
         </form>
       )}
