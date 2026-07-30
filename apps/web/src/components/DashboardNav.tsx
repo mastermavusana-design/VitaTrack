@@ -36,9 +36,7 @@ export default function DashboardNav({ userEmail, userName, isCaregiver }: Dashb
 
         {/* Logo */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-brand-900 flex items-center justify-center">
-            <span className="text-white text-sm font-black">V</span>
-          </div>
+          <img src="/brand/icon.png" alt="VitaTrack" width={32} height={32} className="rounded-lg" />
           <span className="font-black text-gray-900 text-lg">VitaTrack</span>
           {isCaregiver && (
             <span className="hidden sm:inline badge bg-blue-100 text-blue-700 text-xs">

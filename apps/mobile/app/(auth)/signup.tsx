@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Switch,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Switch, Image,
 } from 'react-native'
 import { router, Link } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -57,7 +57,7 @@ export default function SignupScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.logoWrap}>
-            <Text style={s.logoIcon}>💊</Text>
+            <Image source={require('../../assets/images/icon.png')} style={s.logoImg} />
             <Text style={s.logoText}>VitaTrack</Text>
             <Text style={s.logoSub}>Create your free account</Text>
           </View>
@@ -174,7 +174,7 @@ const s = StyleSheet.create({
   root:           { flex: 1, backgroundColor: '#f7f9fc' },
   scroll:         { flexGrow: 1, padding: 24 },
   logoWrap:       { alignItems: 'center', paddingTop: 24, paddingBottom: 24 },
-  logoIcon:       { fontSize: 44 },
+  logoImg:        { width: 68, height: 68, borderRadius: 16 },
   logoText:       { fontSize: 26, fontWeight: '800', color: Colors.primary, marginTop: 6 },
   logoSub:        { fontSize: 14, color: '#666', marginTop: 4 },
   card:           { backgroundColor: '#fff', borderRadius: 16, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
