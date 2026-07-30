@@ -4,11 +4,11 @@ import {
   Switch, Alert, ActivityIndicator, TextInput,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getSupabaseClient } from '@vitatrack/shared'
 import { useAuthStore } from '@/hooks/useAuth'
 import { Colors } from '@/constants/Colors'
+import ScreenHeader from '@/components/ScreenHeader'
 
 type ProfileSection = 'main' | 'family' | 'privacy' | 'notifications'
 
@@ -47,9 +47,7 @@ function ProfileMain({ onNavigate }: { onNavigate: (s: ProfileSection) => void }
 
   return (
     <SafeAreaView style={s.root} edges={['top']}>
-      <View style={s.header}>
-        <Text style={s.headerTitle}>👤 Profile</Text>
-      </View>
+      <ScreenHeader title="👤 Profile" />
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {/* Avatar card */}
@@ -302,7 +300,6 @@ function PrivacyView({ onBack }: { onBack: () => void }) {
 
 /* ─── Notifications ─── */
 function NotificationsView({ onBack }: { onBack: () => void }) {
-  const supabase = getSupabaseClient()
   const [reminders, setReminders]   = useState(true)
   const [refillAlerts, setRefillAlerts] = useState(true)
   const [caregiverPing, setCaregiverPing] = useState(true)

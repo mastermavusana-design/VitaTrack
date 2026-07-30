@@ -45,3 +45,6 @@ Thumbs.db
 # on its own (Linux) builders, so they must not be committed/uploaded.
 /apps/mobile/android/
 /apps/mobile/ios/
+
+.vercel
+.env*

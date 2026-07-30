@@ -4,11 +4,30 @@ import { Session, User } from '@supabase/supabase-js'
 import { getSupabaseClient } from '@vitatrack/shared'
 import * as LocalAuthentication from 'expo-local-authentication'
 import * as SecureStore from 'expo-secure-store'
+import * as WebBrowser from 'expo-web-browser'
+import { makeRedirectUri } from 'expo-auth-session'
 import { router } from 'expo-router'
 import { BIOMETRIC_LOCK_MINUTES } from '@vitatrack/shared'
 import { registerPushToken } from '@/notifications/handler'
 
+// Ensure any lingering auth session popups are dismissed on app load.
+WebBrowser.maybeCompleteAuthSession()
+
 const LAST_ACTIVE_KEY = 'vitatrack_last_active'
+
+/** Parse tokens/code from both the query string and the URL fragment. */
+function parseAuthParams(url: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  const tail = url.split(/[#?]/).slice(1).join('&')
+  for (const pair of tail.split('&')) {
+    if (!pair) continue
+    const idx = pair.indexOf('=')
+    const key = idx === -1 ? pair : pair.slice(0, idx)
+    const val = idx === -1 ? '' : pair.slice(idx + 1)
+    out[decodeURIComponent(key)] = decodeURIComponent(val)
+  }
+  return out
+}
 
 type AuthState = {
   session: Session | null
@@ -48,8 +67,48 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signInWithGoogle: async () => {
-    // Implemented via expo-auth-session in the UI layer
-    return null
+    try {
+      const supabase = getSupabaseClient()
+
+      // Redirect back into the app via the custom scheme (vitatrack:// /
+      // vitatrack-dev:// in dev). Must be added to Supabase Auth → URL
+      // Configuration → Redirect URLs.
+      const redirectTo = makeRedirectUri()
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo, skipBrowserRedirect: true },
+      })
+      if (error) return error.message
+      if (!data?.url) return 'Could not start Google sign-in.'
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
+
+      // User closed the browser without completing sign-in.
+      if (result.type !== 'success' || !result.url) return null
+
+      const params = parseAuthParams(result.url)
+      if (params.error_description) return params.error_description
+      if (params.error) return params.error
+
+      // PKCE flow returns a `code`; implicit flow returns tokens directly.
+      if (params.code) {
+        const { error: exErr } = await supabase.auth.exchangeCodeForSession(params.code)
+        if (exErr) return exErr.message
+      } else if (params.access_token && params.refresh_token) {
+        const { error: sErr } = await supabase.auth.setSession({
+          access_token: params.access_token,
+          refresh_token: params.refresh_token,
+        })
+        if (sErr) return sErr.message
+      } else {
+        return 'Google sign-in did not return a session.'
+      }
+
+      return null
+    } catch (e) {
+      return e instanceof Error ? e.message : 'Google sign-in failed.'
+    }
   },
 
   signOut: async () => {

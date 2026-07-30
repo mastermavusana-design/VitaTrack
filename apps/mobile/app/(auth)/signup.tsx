@@ -9,7 +9,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuthStore } from '@/hooks/useAuth'
-import { getSupabaseClient, PRIVACY_POLICY_URL, TERMS_URL } from '@vitatrack/shared'
+import { getSupabaseClient } from '@vitatrack/shared'
 import { Colors } from '@/constants/Colors'
 
 const schema = z.object({

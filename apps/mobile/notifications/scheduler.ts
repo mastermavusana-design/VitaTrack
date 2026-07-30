@@ -43,9 +43,11 @@ export async function bootstrapNotifications(): Promise<boolean> {
   // Default handler: show banner even in foreground
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge:  false,
+      shouldShowAlert:  true,   // deprecated alias, kept for older runtimes
+      shouldShowBanner: true,
+      shouldShowList:   true,
+      shouldPlaySound:  true,
+      shouldSetBadge:   false,
     }),
   })
 
@@ -184,8 +186,7 @@ function getTimesForSchedule(schedule: MedicationSchedule): [number, number][] {
 function shouldFireOnDate(schedule: MedicationSchedule, date: Date): boolean {
   const freq = schedule.frequency
 
-  if (freq === 'daily' || freq === 'twice_daily' || freq === 'three_times_daily' ||
-      freq === 'four_times_daily' || freq === 'with_meals') {
+  if (freq === 'daily' || freq === 'twice_daily' || freq === 'three_times_daily') {
     return true
   }
 
@@ -194,14 +195,9 @@ function shouldFireOnDate(schedule: MedicationSchedule, date: Date): boolean {
     return schedule.days_of_week.includes(date.getDay())
   }
 
-  if (freq === 'every_other_day' && schedule.start_date) {
-    const start = new Date(schedule.start_date)
-    const diffDays = Math.round((date.getTime() - start.getTime()) / 86_400_000)
-    return diffDays % 2 === 0
-  }
-
   if (freq === 'as_needed') return false
 
+  // 'custom' (and any weekly schedule without explicit days) — default to firing.
   return true
 }
 

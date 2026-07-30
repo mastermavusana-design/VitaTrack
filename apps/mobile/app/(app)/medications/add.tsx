@@ -11,7 +11,7 @@ import { z } from 'zod'
 import { useMedicationsStore } from '@/hooks/useMedications'
 import { Colors } from '@/constants/Colors'
 import {
-  MEDICATION_FORMS, STRENGTH_UNITS, FREQUENCY_OPTIONS, DEFAULT_TIMES, DOSE_UNITS,
+  MEDICATION_FORMS, FREQUENCY_OPTIONS, DEFAULT_TIMES,
 } from '@vitatrack/shared'
 import type { MedicationForm, ScheduleFrequency } from '@vitatrack/shared'
 
@@ -62,7 +62,7 @@ export default function AddMedicationScreen() {
         name: data.name,
         generic_name: data.generic_name ?? null,
         form: (data.form as MedicationForm) ?? null,
-        strength: data.strength ?? null,
+        strength: data.strength ? (Number.parseFloat(data.strength) || null) : null,
         strength_unit: data.strength_unit ?? null,
         instructions: data.instructions ?? null,
         prescriber: data.prescriber ?? null,
@@ -72,7 +72,9 @@ export default function AddMedicationScreen() {
         pill_count: data.pill_count ?? null,
         refill_threshold: data.refill_threshold ?? null,
         color: selectedColor,
+        reminder_enabled: data.reminder_enabled,
         notes: null,
+        archived_at: null,
         profile_id: '', // filled by store
       },
       frequency === 'as_needed' ? [] : [{

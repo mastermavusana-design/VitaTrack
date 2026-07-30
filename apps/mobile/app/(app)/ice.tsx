@@ -7,10 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import QRCode from 'react-native-qrcode-svg'
 import { getSupabaseClient, ICE_BASE_URL } from '@vitatrack/shared'
-import type { ICEProfile, EmergencyContact } from '@vitatrack/shared'
+import type { ICEProfile, EmergencyContact, BloodType } from '@vitatrack/shared'
 import { Colors } from '@/constants/Colors'
 
-const BLOOD_TYPES = ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−', 'Unknown']
+const BLOOD_TYPES: BloodType[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown']
 
 export default function ICEScreen() {
   const [isEditing, setIsEditing] = useState(false)
@@ -54,7 +54,7 @@ export default function ICEScreen() {
   if (!ice || isEditing) {
     return (
       <ICEEditForm
-        current={ice}
+        current={ice ?? null}
         onSave={d => saveMutation.mutate(d)}
         onCancel={() => setIsEditing(false)}
         isSaving={saveMutation.isPending}
@@ -118,9 +118,9 @@ export default function ICEScreen() {
         </ICESection>
 
         {/* Current medications */}
-        {ice.medications?.length ? (
+        {ice.current_medications?.length ? (
           <ICESection icon="💊" title="Current Medications">
-            <Text style={s.iceValue}>{(ice.medications as string[]).join(' · ')}</Text>
+            <Text style={s.iceValue}>{ice.current_medications.join(' · ')}</Text>
           </ICESection>
         ) : null}
 
@@ -201,9 +201,9 @@ function ICEEditForm({
 }) {
   const [allergies, setAllergies]     = useState(current?.allergies?.join(', ') ?? '')
   const [conditions, setConditions]   = useState(current?.conditions?.join(', ') ?? '')
-  const [medications, setMedications] = useState((current?.medications as string[] | undefined)?.join(', ') ?? '')
+  const [medications, setMedications] = useState(current?.current_medications?.join(', ') ?? '')
   const [notes, setNotes]             = useState(current?.additional_notes ?? '')
-  const [bloodType, setBloodType]     = useState<string>(current?.blood_type ?? 'Unknown')
+  const [bloodType, setBloodType]     = useState<BloodType>(current?.blood_type ?? 'Unknown')
   const [organDonor, setOrganDonor]   = useState(current?.organ_donor ?? false)
   const [dnr, setDnr]                 = useState(current?.do_not_resuscitate ?? false)
 
@@ -225,7 +225,7 @@ function ICEEditForm({
     onSave({
       allergies:            splitCSV(allergies),
       conditions:           splitCSV(conditions),
-      medications:          splitCSV(medications),
+      current_medications:  splitCSV(medications),
       additional_notes:     notes.trim() || null,
       blood_type:           bloodType === 'Unknown' ? null : bloodType,
       organ_donor:          organDonor,

@@ -11,6 +11,7 @@ import { useRecordsStore } from '@/hooks/useRecords'
 import { formatDate } from '@vitatrack/shared'
 import type { DoctorVisit, HealthDocument } from '@vitatrack/shared'
 import { Colors } from '@/constants/Colors'
+import ScreenHeader from '@/components/ScreenHeader'
 
 type RecordsTab = 'visits' | 'documents'
 type DocCategory = 'all' | 'lab_result' | 'prescription' | 'imaging' | 'report' | 'other'
@@ -48,15 +49,17 @@ export default function RecordsScreen() {
 
   return (
     <SafeAreaView style={s.root} edges={['top']}>
-      <View style={s.header}>
-        <Text style={s.headerTitle}>📂 Records</Text>
-        <TouchableOpacity
-          style={s.addBtn}
-          onPress={() => router.push('/(app)/records/visit-add')}
-        >
-          <Text style={s.addBtnText}>＋</Text>
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="📂 Records"
+        right={
+          <TouchableOpacity
+            style={s.addBtn}
+            onPress={() => router.push('/(app)/records/visit-add')}
+          >
+            <Text style={s.addBtnText}>＋</Text>
+          </TouchableOpacity>
+        }
+      />
 
       {/* Tab switcher */}
       <View style={s.tabSwitcher}>

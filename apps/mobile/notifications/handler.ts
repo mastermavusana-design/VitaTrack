@@ -13,8 +13,12 @@ import { router } from 'expo-router'
 import { getSupabaseClient } from '@vitatrack/shared'
 
 // ─── Convenience object used by the root _layout ───────────────────────────
-let _tapSub: Notifications.EventSubscription | null = null
-let _fgSub: Notifications.EventSubscription | null = null
+// Structural type keeps this resilient across expo-notifications subscription
+// type renames (EventSubscription/Subscription); all we need is remove().
+// Note: the foreground handler is set via setNotificationHandler(), which
+// returns no unsubscribe handle, so only the tap listener is tracked here.
+type RemovableSub = { remove: () => void }
+let _tapSub: RemovableSub | null = null
 
 export const notificationHandler = {
   setup() {
@@ -28,7 +32,6 @@ export const notificationHandler = {
   },
   teardown() {
     _tapSub?.remove()
-    _fgSub?.remove()
   },
 }
 
@@ -126,7 +129,8 @@ export function setupNotificationTapHandler(): Notifications.EventSubscription {
 
       case 'refill_alert':
         if (data.medicationId) {
-          router.push(`/(app)/medications/${data.medicationId}`)
+          // No standalone medication-detail route exists; open the med's log screen.
+          router.push(`/(app)/medications/${data.medicationId}/log`)
         } else {
           router.push('/(app)/medications')
         }
@@ -163,11 +167,23 @@ export function setupForegroundNotificationHandler(): void {
 
       // Caregiver alerts — always show banner even in foreground
       if (data?.type === 'caregiver_missed_dose' || data?.type === 'caregiver_refill') {
-        return { shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: true }
+        return {
+          shouldShowAlert: true,   // deprecated alias, kept for older runtimes
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+        }
       }
 
       // Dose reminders — show in foreground too (user may not have acted yet)
-      return { shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false }
+      return {
+        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: false,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }
     },
   })
 }

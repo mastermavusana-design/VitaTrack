@@ -7,9 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { useMedicationsStore } from '@/hooks/useMedications'
-import { calcAdherence } from '@vitatrack/shared'
 import type { MedicationWithSchedules } from '@vitatrack/shared'
 import { Colors } from '@/constants/Colors'
+import ScreenHeader from '@/components/ScreenHeader'
 
 type FilterKey = 'all' | 'active' | 'inactive' | 'low_supply'
 const FILTERS: { key: FilterKey; label: string }[] = [
@@ -45,17 +45,19 @@ export default function MedicationsScreen() {
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       {/* Header */}
-      <View style={s.header}>
-        <Text style={s.headerTitle}>💊 Medications</Text>
-        <TouchableOpacity
-          style={s.addBtn}
-          onPress={() => router.push('/(app)/medications/add')}
-          accessibilityRole="button"
-          accessibilityLabel="Add medication"
-        >
-          <Text style={s.addBtnText}>＋</Text>
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="💊 Medications"
+        right={
+          <TouchableOpacity
+            style={s.addBtn}
+            onPress={() => router.push('/(app)/medications/add')}
+            accessibilityRole="button"
+            accessibilityLabel="Add medication"
+          >
+            <Text style={s.addBtnText}>＋</Text>
+          </TouchableOpacity>
+        }
+      />
 
       {/* Filter chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterBar} contentContainerStyle={s.filterContent}>
@@ -105,7 +107,7 @@ function MedicationCard({ med }: { med: MedicationWithSchedules }) {
   return (
     <TouchableOpacity
       style={s.card}
-      onPress={() => router.push(`/(app)/medications/${med.id}`)}
+      onPress={() => router.push(`/(app)/medications/${med.id}/log`)}
       accessibilityRole="button"
     >
       {/* Colour bar */}

@@ -11,6 +11,7 @@ import { classifyBP, classifyGlucose, formatDate, formatTime } from '@vitatrack/
 import type { VitalType, Vital } from '@vitatrack/shared'
 import { Colors } from '@/constants/Colors'
 import VitalsTrendChart from '@/components/VitalsTrendChart'
+import ScreenHeader from '@/components/ScreenHeader'
 
 type VitalTab = { key: VitalType; label: string; icon: string }
 const TABS: VitalTab[] = [
@@ -41,18 +42,20 @@ export default function VitalsScreen() {
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       {/* Header */}
-      <View style={s.header}>
-        <Text style={s.headerTitle}>📊 Vitals</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity style={s.addBtn}
-            onPress={() => router.push(`/(app)/vitals/scan?artifact=device_screen&vitalType=${activeTab}`)}>
-            <Text style={s.addBtnText}>⧉</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={s.addBtn} onPress={() => router.push(`/(app)/vitals/add?type=${activeTab}`)}>
-            <Text style={s.addBtnText}>＋</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScreenHeader
+        title="📊 Vitals"
+        right={
+          <>
+            <TouchableOpacity style={s.addBtn}
+              onPress={() => router.push(`/(app)/vitals/scan?artifact=device_screen&vitalType=${activeTab}`)}>
+              <Text style={s.addBtnText}>⧉</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.addBtn} onPress={() => router.push(`/(app)/vitals/add?type=${activeTab}`)}>
+              <Text style={s.addBtnText}>＋</Text>
+            </TouchableOpacity>
+          </>
+        }
+      />
 
       {/* Type tabs */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabBar} contentContainerStyle={s.tabContent}>

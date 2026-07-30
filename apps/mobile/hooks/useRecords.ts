@@ -82,7 +82,6 @@ export const useRecordsStore = create<RecordsState>((set, get) => ({
     if (!user) return 'Not authenticated'
 
     // Upload to Supabase Storage
-    const ext = file.name.split('.').pop()
     const storagePath = `${user.id}/${Date.now()}_${file.name}`
 
     const formData = new FormData()

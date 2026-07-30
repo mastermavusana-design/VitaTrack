@@ -19,7 +19,8 @@ type FormData = z.infer<typeof schema>
 
 export default function LoginScreen() {
   const [serverError, setServerError] = useState<string | null>(null)
-  const { signInWithEmail } = useAuthStore()
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const { signInWithEmail, signInWithGoogle } = useAuthStore()
 
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -31,6 +32,18 @@ export default function LoginScreen() {
     if (err) {
       setServerError(err)
     } else {
+      router.replace('/(app)')
+    }
+  }
+
+  const onGoogle = async () => {
+    setServerError(null)
+    setGoogleLoading(true)
+    const err = await signInWithGoogle()
+    setGoogleLoading(false)
+    if (err) {
+      setServerError(err)
+    } else if (useAuthStore.getState().session) {
       router.replace('/(app)')
     }
   }
@@ -131,8 +144,17 @@ export default function LoginScreen() {
           </View>
 
           {/* Google */}
-          <TouchableOpacity style={s.googleBtn}>
-            <Text style={s.googleBtnText}>G  Sign in with Google</Text>
+          <TouchableOpacity
+            style={[s.googleBtn, googleLoading && s.btnDisabled]}
+            onPress={onGoogle}
+            disabled={googleLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Sign in with Google"
+          >
+            {googleLoading
+              ? <ActivityIndicator color={Colors.primary} />
+              : <Text style={s.googleBtnText}>G  Sign in with Google</Text>
+            }
           </TouchableOpacity>
 
           {/* Sign up link */}

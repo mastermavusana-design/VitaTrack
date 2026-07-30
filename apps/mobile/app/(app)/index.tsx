@@ -3,11 +3,12 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import ScreenHeader from '@/components/ScreenHeader'
 import { useAuthStore } from '@/hooks/useAuth'
 import { useMedicationsStore } from '@/hooks/useMedications'
 import { useVitalsStore } from '@/hooks/useVitals'
 import { Colors } from '@/constants/Colors'
-import { formatDate, formatTime, classifyBP } from '@vitatrack/shared'
+import { formatTime, classifyBP } from '@vitatrack/shared'
 
 export default function HomeScreen() {
   const { user } = useAuthStore()
@@ -49,20 +50,24 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       {/* Header */}
-      <View style={s.header}>
-        <View>
-          <Text style={s.greeting}>{greeting}</Text>
-          <Text style={s.name}>{firstName} 👋</Text>
-        </View>
-        <View style={s.headerActions}>
-          <TouchableOpacity style={s.notifBtn} onPress={() => router.push('/(app)/notifications')}>
-            <Text style={s.notifIcon}>🔔</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={s.avatar} onPress={() => router.push('/(app)/profile')}>
-            <Text style={s.avatarText}>{firstName.charAt(0).toUpperCase()}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScreenHeader
+        titleSlot={
+          <View>
+            <Text style={s.greeting}>{greeting}</Text>
+            <Text style={s.name}>{firstName} 👋</Text>
+          </View>
+        }
+        right={
+          <>
+            <TouchableOpacity style={s.notifBtn} onPress={() => router.push('/(app)/profile')}>
+              <Text style={s.notifIcon}>🔔</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.avatar} onPress={() => router.push('/(app)/profile')}>
+              <Text style={s.avatarText}>{firstName.charAt(0).toUpperCase()}</Text>
+            </TouchableOpacity>
+          </>
+        }
+      />
 
       <ScrollView
         style={s.scroll}

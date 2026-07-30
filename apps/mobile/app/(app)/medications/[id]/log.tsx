@@ -5,7 +5,6 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useQuery } from '@tanstack/react-query'
 import { useMedicationsStore } from '@/hooks/useMedications'
 import { Colors } from '@/constants/Colors'
 import { DOSE_EDIT_WINDOW_HOURS } from '@vitatrack/shared'

@@ -3,7 +3,7 @@
  * One class per table. Use @field and @json decorators to map columns.
  */
 import { Model } from '@nozbe/watermelondb'
-import { field, date, json, readonly } from '@nozbe/watermelondb/decorators'
+import { field, date } from '@nozbe/watermelondb/decorators'
 
 /* ─── Vital ─────────────────────────────────────────────────────────────── */
 export class VitalModel extends Model {

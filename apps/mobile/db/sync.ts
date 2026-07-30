@@ -13,6 +13,7 @@
  * Note: Supabase RLS ensures users only see their own data.
  */
 import * as SecureStore from 'expo-secure-store'
+import { Q } from '@nozbe/watermelondb'
 import { database, vitalsCollection, medicationsCollection, doseLogsCollection, doctorVisitsCollection } from './database'
 import { getSupabaseClient, captureException } from '@vitatrack/shared'
 import type { VitalModel, MedicationModel, DoseLogModel, DoctorVisitModel } from './models'
@@ -63,10 +64,10 @@ async function pullVitals(supabase: ReturnType<typeof getSupabaseClient>, since:
   await database.write(async () => {
     for (const row of data) {
       const existing = await vitalsCollection
-        .query().where('server_id', row.id).fetch()
+        .query(Q.where('server_id', row.id)).fetch()
 
       if (existing.length > 0) {
-        await existing[0].update(v => {
+        await existing[0].update((v: VitalModel) => {
           v.systolic      = row.systolic
           v.diastolic     = row.diastolic
           v.pulse         = row.pulse
@@ -115,7 +116,7 @@ async function pullMedications(supabase: ReturnType<typeof getSupabaseClient>, s
   await database.write(async () => {
     for (const row of data) {
       const existing = await medicationsCollection
-        .query().where('server_id', row.id).fetch()
+        .query(Q.where('server_id', row.id)).fetch()
 
       const writeMed = (m: MedicationModel) => {
         m.serverId        = row.id
@@ -159,7 +160,7 @@ async function pullDoseLogs(supabase: ReturnType<typeof getSupabaseClient>, sinc
   await database.write(async () => {
     for (const row of data) {
       const existing = await doseLogsCollection
-        .query().where('server_id', row.id).fetch()
+        .query(Q.where('server_id', row.id)).fetch()
 
       if (!existing.length) {
         await doseLogsCollection.create(d => {
@@ -213,7 +214,7 @@ async function pullDoctorVisits(supabase: ReturnType<typeof getSupabaseClient>, 
       }
 
       const existing = await doctorVisitsCollection
-        .query().where('server_id', row.id).fetch()
+        .query(Q.where('server_id', row.id)).fetch()
 
       if (existing.length > 0) {
         const local = existing[0]
@@ -232,7 +233,7 @@ async function pullDoctorVisits(supabase: ReturnType<typeof getSupabaseClient>, 
 /* ─── Push: Local dirty rows → Supabase ──────────────────────────────────── */
 async function pushDirtyDoctorVisits(supabase: ReturnType<typeof getSupabaseClient>, profileId: string) {
   const dirty = await doctorVisitsCollection
-    .query().where('is_dirty', true).where('profile_id', profileId).fetch()
+    .query(Q.where('is_dirty', true), Q.where('profile_id', profileId)).fetch()
 
   if (!dirty.length) return
 
@@ -260,7 +261,7 @@ async function pushDirtyDoctorVisits(supabase: ReturnType<typeof getSupabaseClie
 
     if (!error && data) {
       await database.write(async () => {
-        await visit.update(v => {
+        await visit.update((v: DoctorVisitModel) => {
           v.serverId        = data.id
           v.serverUpdatedAt = data.updated_at ? new Date(data.updated_at).getTime() : Date.now()
           v.isDirty         = false
@@ -274,7 +275,7 @@ async function pushDirtyDoctorVisits(supabase: ReturnType<typeof getSupabaseClie
 /* ─── Push: Local dirty rows → Supabase ──────────────────────────────────── */
 async function pushDirtyDoseLogs(supabase: ReturnType<typeof getSupabaseClient>, profileId: string) {
   const dirty = await doseLogsCollection
-    .query().where('is_dirty', true).where('profile_id', profileId).fetch()
+    .query(Q.where('is_dirty', true), Q.where('profile_id', profileId)).fetch()
 
   if (!dirty.length) return
 
@@ -295,7 +296,7 @@ async function pushDirtyDoseLogs(supabase: ReturnType<typeof getSupabaseClient>,
 
     if (!error && data) {
       await database.write(async () => {
-        await log.update(l => {
+        await log.update((l: DoseLogModel) => {
           l.serverId = data.id
           l.isDirty  = false
           l.syncedAt = Date.now()
@@ -307,8 +308,8 @@ async function pushDirtyDoseLogs(supabase: ReturnType<typeof getSupabaseClient>,
 
 async function pushDirtyVitals(supabase: ReturnType<typeof getSupabaseClient>, profileId: string) {
   const dirty = await vitalsCollection
-    .query().where('is_deleted', false).where('profile_id', profileId)
-    .where('synced_at', null as any).fetch()
+    .query(Q.where('is_deleted', false), Q.where('profile_id', profileId), Q.where('synced_at', null as any))
+    .fetch()
 
   if (!dirty.length) return
 
@@ -337,7 +338,7 @@ async function pushDirtyVitals(supabase: ReturnType<typeof getSupabaseClient>, p
 
     if (!error && data) {
       await database.write(async () => {
-        await v.update(row => {
+        await v.update((row: VitalModel) => {
           row.serverId = data.id
           row.syncedAt = Date.now()
         })
