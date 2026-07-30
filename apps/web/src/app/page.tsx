@@ -23,9 +23,7 @@ export default function HomePage() {
       <nav style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{ maxWidth: 1024, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#fff', fontWeight: 900, fontSize: 16 }}>V</span>
-            </div>
+            <img src="/brand/icon.png" alt="VitaTrack" width={36} height={36} style={{ borderRadius: 10, display: 'block' }} />
             <span style={{ fontWeight: 900, fontSize: 18, color: '#111' }}>VitaTrack</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

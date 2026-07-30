@@ -20,9 +20,13 @@ export default async function LoginPage({
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-2xl font-black text-brand-900">V</span>
-          </div>
+          <img
+            src="/brand/icon.png"
+            alt="VitaTrack"
+            width={56}
+            height={56}
+            className="rounded-2xl mx-auto mb-4 shadow-lg"
+          />
           <h1 className="text-2xl font-black text-white">VitaTrack</h1>
           <p className="text-blue-300 text-sm mt-1">Caregiver & Web Portal</p>
         </div>
