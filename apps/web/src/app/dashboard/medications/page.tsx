@@ -2,6 +2,8 @@ import { createServerClient } from '@/lib/supabase'
 import { calcAdherence } from '@vitatrack/shared'
 import type { DoseLog } from '@vitatrack/shared'
 import type { Metadata } from 'next'
+import AddMedicationButton from '@/components/medications/AddMedicationButton'
+import MedCardActions from '@/components/medications/MedCardActions'
 
 export const metadata: Metadata = { title: 'Medications — VitaTrack' }
 export const revalidate = 60
@@ -56,7 +58,7 @@ export default async function MedicationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black text-gray-900">Medications</h1>
-        <span className="text-sm text-gray-400">Read-only · Edit in the VitaTrack app</span>
+        <AddMedicationButton />
       </div>
 
       {/* Active medications */}
@@ -139,6 +141,9 @@ export default async function MedicationsPage() {
                 {med.instructions && (
                   <p className="text-xs text-gray-400 italic">{med.instructions}</p>
                 )}
+
+                {/* Dose logging + archive */}
+                <MedCardActions medicationId={med.id} medicationName={med.name} />
               </div>
             )
           })}

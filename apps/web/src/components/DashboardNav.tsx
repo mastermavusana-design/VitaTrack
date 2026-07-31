@@ -39,6 +39,7 @@ export default function DashboardNav({ userEmail, userName, isCaregiver }: Dashb
     { href: '/dashboard/vitals', label: 'Vitals', icon: '📊' },
     { href: '/dashboard/medications', label: 'Medications', icon: '💊' },
     { href: '/dashboard/records', label: 'Records', icon: '📂' },
+    ...(!isCaregiver ? [{ href: '/dashboard/ice', label: 'Emergency', icon: '🚨' }] : []),
     ...(!isCaregiver ? [{ href: '/dashboard/caregivers', label: 'Family', icon: '👨‍👩‍👧' }] : []),
     { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
   ]

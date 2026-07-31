@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase'
 import { formatDate } from '@vitatrack/shared'
 import type { Metadata } from 'next'
+import AddVisitButton from '@/components/records/AddVisitButton'
 
 export const metadata: Metadata = { title: 'Records — VitaTrack' }
 export const revalidate = 60
@@ -60,10 +61,12 @@ export default async function RecordsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black text-gray-900">Health Records</h1>
-        {isCaregiver && (
+        {isCaregiver ? (
           <span className="badge bg-blue-100 text-blue-700 text-sm px-3 py-1">
             👁 Read-only caregiver view
           </span>
+        ) : (
+          <AddVisitButton />
         )}
       </div>
 

@@ -3,6 +3,7 @@ import { classifyBP } from '@vitatrack/shared'
 import type { Vital, VitalType } from '@vitatrack/shared'
 import VitalsTable from '@/components/VitalsTable'
 import VitalsTrendChart from '@/components/VitalsTrendChart'
+import AddVitalButton from '@/components/vitals/AddVitalButton'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Vitals — VitaTrack' }
@@ -56,7 +57,10 @@ export default async function VitalsPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-black text-gray-900">Vitals History</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-black text-gray-900">Vitals History</h1>
+        <AddVitalButton defaultType={activeType} />
+      </div>
 
       {/* Type tabs */}
       <div className="flex flex-wrap gap-2">
