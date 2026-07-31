@@ -60,7 +60,7 @@ module.exports = {
       versionCode: 1,
       adaptiveIcon: {
         foregroundImage: './assets/images/adaptive-icon.png',
-        backgroundColor: '#1A569B',
+        backgroundColor: '#D6D6D6',
       },
       permissions: [
         'USE_BIOMETRIC',
