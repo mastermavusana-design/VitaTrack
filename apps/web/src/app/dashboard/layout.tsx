@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase'
 import DashboardNav from '@/components/DashboardNav'
+import InAppReminders from '@/components/reminders/InAppReminders'
 
 export default async function DashboardLayout({
   children,
@@ -38,6 +39,7 @@ export default async function DashboardLayout({
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
         {children}
       </main>
+      <InAppReminders />
     </div>
   )
 }

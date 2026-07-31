@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase'
 import type { Metadata } from 'next'
 import SettingsClient from './SettingsClient'
+import ReminderSettings from '@/components/reminders/ReminderSettings'
 
 export const metadata: Metadata = { title: 'Settings — VitaTrack' }
 
@@ -27,6 +28,7 @@ export default async function SettingsPage() {
         email={session.user.email ?? ''}
         userId={session.user.id}
       />
+      <ReminderSettings />
     </div>
   )
 }

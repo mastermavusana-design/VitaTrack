@@ -2,10 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["lhr1"],
-  "installCommand": "cd ../.. && npm_config_node_linker=isolated pnpm install --frozen-lockfile",
+  "installCommand": "cd ../.. && npm_config_node_linker=isolated pnpm install --no-frozen-lockfile",
   "buildCommand": "cd ../.. && pnpm --filter @vitatrack/web build",
   "outputDirectory": ".next",
   "github": {
     "silent": true
-  }
+  },
+  "crons": [
+    { "path": "/api/cron/reminders", "schedule": "*/5 * * * *" }
+  ]
 }
