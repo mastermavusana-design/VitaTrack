@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       profile_id:     session.user.id,
       visit_date:     visitDate,
       visit_type:     visitType,
-      doctor_name:    body.doctor_name?.trim()  || null,
+      provider_name:  body.provider_name?.trim() || body.doctor_name?.trim() || null,
       specialty:      body.specialty?.trim()    || null,
       facility:       body.facility?.trim()     || null,
       reason:         body.reason?.trim()       || null,
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       follow_up_date: body.follow_up_date       || null,
       notes:          body.notes?.trim()        || null,
     })
-    .select('id, visit_date, doctor_name')
+    .select('id, visit_date, provider_name')
     .single()
 
   if (error) {

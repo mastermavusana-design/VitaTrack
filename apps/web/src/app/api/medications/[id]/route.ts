@@ -76,6 +76,32 @@ export async function PATCH(
     captureException(error, { tags: { route: 'PATCH /api/medications/[id]' } })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  // Optionally replace the dosing schedule (frequency + times).
+  const VALID_FREQ = ['daily', 'twice_daily', 'three_times_daily', 'weekly', 'as_needed', 'custom']
+  if (typeof body.frequency === 'string' && VALID_FREQ.includes(body.frequency)) {
+    const times = Array.isArray(body.times)
+      ? body.times.filter((t: unknown) => typeof t === 'string' && /^\d{2}:\d{2}$/.test(t))
+      : []
+    // Replace existing schedules with the new one (simple, predictable).
+    await supabase.from('medication_schedules').delete().eq('medication_id', params.id)
+    if (body.frequency !== 'as_needed') {
+      const { error: schedError } = await supabase
+        .from('medication_schedules')
+        .insert({
+          medication_id:    params.id,
+          profile_id:       session.user.id,
+          frequency:        body.frequency,
+          times:            times.length > 0 ? times : ['08:00'],
+          reminder_enabled: body.reminder_enabled ?? true,
+          is_active:        true,
+        })
+      if (schedError) {
+        captureException(schedError, { tags: { route: 'PATCH /api/medications/[id] (schedule)' } })
+      }
+    }
+  }
+
   return NextResponse.json({ medication: data })
 }
 

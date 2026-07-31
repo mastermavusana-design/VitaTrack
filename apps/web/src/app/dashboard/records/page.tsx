@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase'
 import { formatDate } from '@vitatrack/shared'
 import type { Metadata } from 'next'
 import AddVisitButton from '@/components/records/AddVisitButton'
+import AddDocumentButton from '@/components/records/AddDocumentButton'
 
 export const metadata: Metadata = { title: 'Records — VitaTrack' }
 export const revalidate = 60
@@ -138,9 +139,12 @@ export default async function RecordsPage() {
 
       {/* Documents */}
       <section>
-        <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
-          Documents ({docList.length})
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest">
+            Documents ({docList.length})
+          </h2>
+          {!isCaregiver && <AddDocumentButton />}
+        </div>
 
         {docList.length === 0 ? (
           <div className="card p-10 text-center text-gray-400">

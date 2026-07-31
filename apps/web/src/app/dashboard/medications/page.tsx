@@ -142,8 +142,8 @@ export default async function MedicationsPage() {
                   <p className="text-xs text-gray-400 italic">{med.instructions}</p>
                 )}
 
-                {/* Dose logging + archive */}
-                <MedCardActions medicationId={med.id} medicationName={med.name} />
+                {/* Dose logging + edit + archive */}
+                <MedCardActions med={med} />
               </div>
             )
           })}

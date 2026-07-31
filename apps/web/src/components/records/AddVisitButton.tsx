@@ -79,7 +79,7 @@ export default function AddVisitButton() {
         </div>
 
         <Field label="Doctor / provider">
-          <input className="input" value={f.doctor_name ?? ''} onChange={e => set('doctor_name', e.target.value)} placeholder="e.g. Dr Nkosi" />
+          <input className="input" value={f.provider_name ?? ''} onChange={e => set('provider_name', e.target.value)} placeholder="e.g. Dr Nkosi" />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
