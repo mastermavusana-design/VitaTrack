@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
   }
 
   const category = VALID_CATEGORIES.includes(body.category) ? body.category : 'other'
+  const VALID_SOURCE = ['manual', 'scan', 'qr', 'import']
 
   const { data, error } = await supabase
     .from('health_documents')
@@ -68,6 +69,8 @@ export async function POST(req: NextRequest) {
       file_size_bytes: body.file_size_bytes ?? null,
       original_name:   body.original_name || fileName,
       notes:           body.notes?.trim() || null,
+      source:          VALID_SOURCE.includes(body.source) ? body.source : 'manual',
+      capture_id:      body.capture_id ?? null,
     })
     .select('id, file_name, category')
     .single()

@@ -34,9 +34,11 @@ interface Props {
   onClose: () => void
   mode: 'add' | 'edit'
   initial?: MedInitial
+  /** Optional scanned barcode to record against a new medication. */
+  barcode?: string
 }
 
-export default function MedicationForm({ open, onClose, mode, initial }: Props) {
+export default function MedicationForm({ open, onClose, mode, initial, barcode }: Props) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,7 +49,9 @@ export default function MedicationForm({ open, onClose, mode, initial }: Props) 
   const [form, setForm] = useState(initial?.form ?? 'tablet')
   const [strength, setStrength] = useState(initial?.strength != null ? String(initial.strength) : '')
   const [strengthUnit, setStrengthUnit] = useState(initial?.strength_unit ?? 'mg')
-  const [instructions, setInstructions] = useState(initial?.instructions ?? '')
+  const [instructions, setInstructions] = useState(
+    initial?.instructions ?? (barcode ? `Barcode: ${barcode}` : ''),
+  )
   const [prescriber, setPrescriber] = useState(initial?.prescriber ?? '')
   const [pillCount, setPillCount] = useState(initial?.pill_count != null ? String(initial.pill_count) : '')
   const [refillThreshold, setRefillThreshold] = useState(initial?.refill_threshold != null ? String(initial.refill_threshold) : '')

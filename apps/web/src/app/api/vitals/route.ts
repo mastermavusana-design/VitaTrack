@@ -42,12 +42,15 @@ export async function POST(req: NextRequest) {
   }
 
   // Build insert payload — only include fields for the given type
+  const VALID_SOURCE = ['manual', 'scan', 'qr', 'import']
   const payload: Record<string, unknown> = {
     profile_id:  session.user.id,
     type:        body.type,
     recorded_at: body.recorded_at ?? new Date().toISOString(),
     device:      body.device ?? null,
     notes:       body.notes ?? null,
+    source:      VALID_SOURCE.includes(body.source) ? body.source : 'manual',
+    capture_id:  body.capture_id ?? null,
   }
 
   switch (body.type) {

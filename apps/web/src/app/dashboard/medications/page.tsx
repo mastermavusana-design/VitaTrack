@@ -58,7 +58,10 @@ export default async function MedicationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black text-gray-900">Medications</h1>
-        <AddMedicationButton />
+        <div className="flex items-center gap-2">
+          <a href="/dashboard/scan?artifact=medication" className="btn-secondary text-sm whitespace-nowrap">📷 Scan barcode</a>
+          <AddMedicationButton />
+        </div>
       </div>
 
       {/* Active medications */}

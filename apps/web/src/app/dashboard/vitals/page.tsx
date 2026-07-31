@@ -57,9 +57,12 @@ export default async function VitalsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-black text-gray-900">Vitals History</h1>
-        <AddVitalButton defaultType={activeType} />
+        <div className="flex items-center gap-2">
+          <a href={`/dashboard/scan?artifact=device_screen&vitalType=${activeType}`} className="btn-secondary text-sm whitespace-nowrap">📷 Scan device</a>
+          <AddVitalButton defaultType={activeType} />
+        </div>
       </div>
 
       {/* Type tabs */}

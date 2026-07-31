@@ -143,7 +143,12 @@ export default async function RecordsPage() {
           <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest">
             Documents ({docList.length})
           </h2>
-          {!isCaregiver && <AddDocumentButton />}
+          {!isCaregiver && (
+            <div className="flex items-center gap-2">
+              <a href="/dashboard/scan?artifact=prescription" className="btn-secondary text-sm whitespace-nowrap">📷 Scan</a>
+              <AddDocumentButton />
+            </div>
+          )}
         </div>
 
         {docList.length === 0 ? (
