@@ -107,7 +107,7 @@ function MedicationCard({ med }: { med: MedicationWithSchedules }) {
   return (
     <TouchableOpacity
       style={s.card}
-      onPress={() => router.push(`/(app)/medications/${med.id}/log`)}
+      onPress={() => router.push(`/(app)/medications/${med.id}`)}
       accessibilityRole="button"
     >
       {/* Colour bar */}

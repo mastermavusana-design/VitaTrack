@@ -129,8 +129,7 @@ export function setupNotificationTapHandler(): Notifications.EventSubscription {
 
       case 'refill_alert':
         if (data.medicationId) {
-          // No standalone medication-detail route exists; open the med's log screen.
-          router.push(`/(app)/medications/${data.medicationId}/log`)
+          router.push(`/(app)/medications/${data.medicationId}`)
         } else {
           router.push('/(app)/medications')
         }

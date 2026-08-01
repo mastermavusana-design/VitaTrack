@@ -205,6 +205,8 @@ CREATE TABLE dependants (
 
 **Design decision to make:** do child records hang off a `dependant_id`, or does every dependant get a real `profiles` row (so the child can later "graduate" to owning their own account at 18)? Recommendation: give dependants their own `profiles` row flagged `is_dependant = TRUE` with a nullable `auth.users` link, so vaccinations/vitals/labs can reuse `profile_id` unchanged and account graduation is just linking a login. Revisit RLS: guardian access via a `is_guardian_of(profile)` helper mirroring `is_family_member`.
 
+> **Decision taken (foundation migration `20240728000000_child_health_record.sql`):** the *dependant-centric* route, not the shared-`profiles`-row route. The child health tables key off `dependant_id`; the `dependants` table is guardian-owned. This deliberately avoids decoupling `profiles.id` from `auth.users` in the foundation pass (lower risk, fully reversible). RLS is enforced via `dependant_owned()` (guardian full CRUD) and `dependant_visible()` (guardian's accepted family members get read). Account graduation at 18 becomes a later additive migration that provisions a login and backfills a link — it does not reshape these tables. If cross-reuse of `profile_id` for dependant vitals/labs later becomes important, that trade-off can be revisited then.
+
 ### 8.2 Immunisations
 The EPI-SA schedule was revised — as of the **January 2024** update, the combined **measles-rubella (MR)** vaccine replaced measles-alone, and a **Tdap booster at 6 years** replaced the old Td. A further revision is in circulation for 2025. So the schedule must be **data-driven, not hard-coded** — store the recommended schedule as seed data and version it, so a schedule change is a data migration, not an app release.
 
@@ -352,3 +354,23 @@ Recommendation: A for launch, B when pharmacy/refill features are on the roadmap
 
 ### 9.5 Wearables (the epic — scope explicitly)
 Not a table, an integration layer: platform SDKs (**Apple HealthKit**, **Android Health Connect**) for on-device reads, plus OAuth to one cloud provider (**Fitbit** or **Garmin**) to start. Requirements that don't exist yet: a `'device_sync'` value in the `vitals.source` enum, a per-source provenance/external-id column for **deduplication** against manual entries, background sync, and a storage decision for high-frequency streams (HR, steps) that the row-per-reading `vitals` shape handles badly — consider a separate `wearable_samples` table or aggregation on ingest. Given the size, **the honest recommendation is to defer wearables past v1.x** rather than half-build it.
+
+---
+
+## 10. Product vision & horizon roadmap (strategy — not yet scoped for build)
+
+This section captures the broader product direction explored in strategy work so it stops living only in a separate dossier. **Nothing here is committed engineering scope** — it is the "where this could go" frame that Phases 0–5 above are the concrete floor of. Treat §1–9 as the build plan and §10 as the north star it should not accidentally contradict.
+
+The core insight: South Africa is mid-rollout of **National Health Insurance (NHI Act, phased to 2028)** and openly concedes it has *no national system to manage patient records* — it is building clinic-side EMRs but no patient-owned, citizen-facing record layer. VitaTrack's child health record (§8) is the wedge into exactly that gap, because immunisation is the highest-frequency, highest-emotion reason a family opens a health app.
+
+**Three-horizon arc — Companion → Wallet → Rail:**
+
+1. **Companion (now / v1).** The health record itself — meds, vitals, visits, labs, and the child RtHB (§8). Land the family *through the baby*. Lowest-friction entry is a near-zero-cost front door: a **WhatsApp companion** for enrolment and reminders, plus an **"on-behalf" capture** flow so a caregiver can maintain a record for someone without a smartphone (the mechanic StokFella proved at ~42k members). A portable **"Vita Pass"** (the existing signed-QR / `scan_captures` + `qr_issuer_keys` infrastructure, already built) is the shareable, clinic-scannable identity that turns each clinic into a network node.
+2. **Wallet (post-v1).** A **"Circle"** — a savings float plus *licensed-partner* microinsurance — layered on the trusted record. Regulatory path runs through the 2017 demarcation rules: structure it as **savings + licensed microinsurance, never carrying insurance risk on its own balance sheet early** (savings-only → licensed-partner cover → NHI-complementary). The savings float is what can subsidise a structurally free tier, so reach funds itself.
+3. **Rail (long-term).** Become the **patient-owned citizen record layer NHI concedes it cannot build**, funded per-capita by the payer, then replicate the stack across other African markets (Kenya, Nigeria, Ghana, Rwanda) that are mid-build on universal coverage with the same missing patient-facing layer.
+
+**Why the position is defensible (not just the features):** trust × two-sided (family + clinic) network × regulatory navigation × compounding longitudinal data. Features get copied; that position does not. Incumbents are structurally constrained — private insurers are bound by demarcation law to the insured minority, platform players lack the financing rail and local-language nurse layer, and the state and telcos rationally partner rather than compete.
+
+**Mechanisms flagged for when/if these horizons are picked up:** the three-tier regulatory architecture for the Circle (above); an AI extraction + triage stack with **human-nurse escalation** (never autonomous clinical advice); and unit economics that stack multiple revenue layers on the same family at near-zero acquisition cost because the front door is free.
+
+**Build-plan implication:** the only horizon-1 items that touch near-term engineering are (a) the child RtHB record — already scoped in §8 and now started (foundation migration `20240728000000_child_health_record.sql`), (b) the WhatsApp companion / on-behalf enrolment as an *alternative ingest surface*, and (c) the Vita Pass, which already exists. The Wallet and Rail horizons are **explicitly out of v1** and should be revisited only after the launch phases (0–4) are delivered.

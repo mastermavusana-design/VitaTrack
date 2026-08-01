@@ -59,7 +59,7 @@ export default function HomeScreen() {
         }
         right={
           <>
-            <TouchableOpacity style={s.notifBtn} onPress={() => router.push('/(app)/profile')}>
+            <TouchableOpacity style={s.notifBtn} onPress={() => router.push('/(app)/notifications')}>
               <Text style={s.notifIcon}>🔔</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.avatar} onPress={() => router.push('/(app)/profile')}>
