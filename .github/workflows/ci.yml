@@ -95,7 +95,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run unit tests
-        run: pnpm --filter @vitatrack/shared test --coverage
+        run: pnpm --filter @vitatrack/shared test -- --coverage
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -167,6 +167,10 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+
+      - name: Start local database
+        run: supabase start
+        working-directory: .
 
       - name: Validate migrations
         run: supabase db lint --schema public
