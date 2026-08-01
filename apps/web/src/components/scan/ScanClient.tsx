@@ -121,10 +121,12 @@ export default function ScanClient({ artifact, vitalHint }: Props) {
         // A VitaTrack signed reading QR → import into the vitals review.
         const parsed = parseReadingQR(hit.rawValue)
         if (parsed.ok) {
-          const ext = qrToExtraction(parsed.parsed.payload)
-          stopCamera()
-          loadVitalsExtraction(ext, true)
-          return
+          const result = qrToExtraction(parsed.parsed.payload)
+          if (result.vitals) {
+            stopCamera()
+            loadVitalsExtraction(result.vitals, true)
+            return
+          }
         }
         // Otherwise, in medication mode, treat a product barcode as the item code.
         if (artifact === 'medication' && isProductBarcode(hit.format)) {
