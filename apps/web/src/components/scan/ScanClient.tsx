@@ -60,7 +60,7 @@ export default function ScanClient({ artifact, vitalHint }: Props) {
 
   // vitals review state
   const [vitalsType, setVitalsType] = useState<VitalType>(vitalHint ?? 'blood_pressure')
-  const [vitals, setVitals] = useState<VitalsExtraction | null>(null)
+  const [, setVitals] = useState<VitalsExtraction | null>(null)
   const [vitalFields, setVitalFields] = useState<Record<string, string>>({})
   const [conf, setConf] = useState<Record<string, FieldConfidence>>({})
   const [overall, setOverall] = useState<number>(0)
