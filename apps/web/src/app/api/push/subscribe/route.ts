@@ -9,8 +9,8 @@ import { captureException } from '@vitatrack/shared'
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const body = await req.json().catch(() => null)
   const sub = body?.subscription
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     .from('push_tokens')
     .upsert(
       {
-        profile_id:   session.user.id,
+        profile_id:   user.id,
         token,
         platform:     'web',
         device_name:  typeof body.device_name === 'string' ? body.device_name.slice(0, 120) : null,

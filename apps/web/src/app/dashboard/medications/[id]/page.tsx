@@ -16,15 +16,15 @@ const STATUS_STYLE: Record<DoseStatus, { dot: string; label: string }> = {
 
 export default async function MedicationDetailPage({ params }: { params: { id: string } }) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return null
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
 
   // Resolve target profile (caregiver → owner)
-  let targetProfileId = session.user.id
+  let targetProfileId = user.id
   const { data: membership } = await supabase
     .from('family_members')
     .select('owner_id')
-    .eq('invitee_id', session.user.id)
+    .eq('invitee_id', user.id)
     .eq('status', 'accepted')
     .limit(1)
     .maybeSingle()

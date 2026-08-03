@@ -25,9 +25,9 @@ import {
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   // Build insert payload — only include fields for the given type
   const VALID_SOURCE = ['manual', 'scan', 'qr', 'import']
   const payload: Record<string, unknown> = {
-    profile_id:  session.user.id,
+    profile_id:  user.id,
     type:        body.type,
     recorded_at: body.recorded_at ?? new Date().toISOString(),
     device:      body.device ?? null,
@@ -153,8 +153,8 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
   const type  = searchParams.get('type') ?? 'blood_pressure'
@@ -162,11 +162,11 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(searchParams.get('limit') ?? '100', 10)
 
   // Resolve profile (caregiver → owner)
-  let profileId = session.user.id
+  let profileId = user.id
   const { data: membership } = await supabase
     .from('family_members')
     .select('owner_id')
-    .eq('invitee_id', session.user.id)
+    .eq('invitee_id', user.id)
     .eq('status', 'accepted')
     .maybeSingle()
   if (membership) profileId = (membership as any).owner_id

@@ -11,8 +11,8 @@ import { captureException } from '@vitatrack/shared'
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const body = await req.json().catch(() => null)
   if (!body?.medication_id || !body?.status) {
@@ -25,13 +25,13 @@ export async function POST(req: NextRequest) {
   }
 
   // Resolve profile: if caregiver, log on behalf of owner
-  let profileId  = session.user.id
-  let loggedById = session.user.id
+  let profileId  = user.id
+  let loggedById = user.id
 
   const { data: membership } = await supabase
     .from('family_members')
     .select('owner_id, role')
-    .eq('invitee_id', session.user.id)
+    .eq('invitee_id', user.id)
     .eq('status', 'accepted')
     .maybeSingle()
 
@@ -81,19 +81,19 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
   const days           = parseInt(searchParams.get('days') ?? '30', 10)
   const medicationId   = searchParams.get('medication_id') ?? null
 
   // Resolve target profile
-  let profileId = session.user.id
+  let profileId = user.id
   const { data: membership } = await supabase
     .from('family_members')
     .select('owner_id')
-    .eq('invitee_id', session.user.id)
+    .eq('invitee_id', user.id)
     .eq('status', 'accepted')
     .maybeSingle()
   if (membership) profileId = (membership as any).owner_id

@@ -10,15 +10,15 @@ const VALID_VISIT_TYPES = ['gp', 'specialist', 'emergency', 'dentist', 'pharmacy
 
 export async function GET() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   // Resolve caregiver target
-  let profileId = session.user.id
+  let profileId = user.id
   const { data: membership } = await supabase
     .from('family_members')
     .select('owner_id')
-    .eq('invitee_id', session.user.id)
+    .eq('invitee_id', user.id)
     .eq('status', 'accepted')
     .maybeSingle()
   if (membership) profileId = (membership as any).owner_id
@@ -39,8 +39,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const body = await req.json().catch(() => null)
 
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase
     .from('doctor_visits')
     .insert({
-      profile_id:     session.user.id,
+      profile_id:     user.id,
       visit_date:     visitDate,
       visit_type:     visitType,
       provider_name:  body.provider_name?.trim() || body.doctor_name?.trim() || null,

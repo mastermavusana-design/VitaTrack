@@ -13,8 +13,8 @@ const VALID_STATUS = ['reviewed', 'discarded', 'failed']
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const body = await req.json().catch(() => null)
 
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase
     .from('scan_captures')
     .insert({
-      profile_id:   session.user.id,
+      profile_id:   user.id,
       artifact,
       method,
       engine:       typeof body?.engine === 'string' ? body.engine.slice(0, 120) : null,

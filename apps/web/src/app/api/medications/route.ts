@@ -16,18 +16,18 @@ function nonNegative(value: unknown, field: string): { value: number | null } | 
 
 export async function GET(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
   const includeInactive = searchParams.get('includeInactive') === 'true'
 
   // Resolve caregiver target
-  let profileId = session.user.id
+  let profileId = user.id
   const { data: membership } = await supabase
     .from('family_members')
     .select('owner_id')
-    .eq('invitee_id', session.user.id)
+    .eq('invitee_id', user.id)
     .eq('status', 'accepted')
     .maybeSingle()
   if (membership) profileId = (membership as any).owner_id
@@ -53,8 +53,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const body = await req.json().catch(() => null)
   const name = typeof body?.name === 'string' ? body.name.trim() : ''
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase
     .from('medications')
     .insert({
-      profile_id:       session.user.id,
+      profile_id:       user.id,
       name,
       generic_name:     body.generic_name ?? null,
       form:             body.form ?? null,
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       .from('medication_schedules')
       .insert({
         medication_id:    data.id,
-        profile_id:       session.user.id,
+        profile_id:       user.id,
         frequency,
         times:            times.length > 0 ? times : ['08:00'],
         reminder_enabled: body.reminder_enabled ?? true,

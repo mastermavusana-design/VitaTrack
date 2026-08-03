@@ -26,14 +26,14 @@ const DOC_CAT_ICONS: Record<string, string> = {
 
 export default async function RecordsPage() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return null
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
 
-  let targetProfileId = session.user.id
+  let targetProfileId = user.id
   const { data: membership } = await supabase
     .from('family_members')
     .select('owner_id, owner:profiles!family_members_owner_id_fkey(full_name)')
-    .eq('invitee_id', session.user.id)
+    .eq('invitee_id', user.id)
     .eq('status', 'accepted')
     .limit(1)
     .maybeSingle()

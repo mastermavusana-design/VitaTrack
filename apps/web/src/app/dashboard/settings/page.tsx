@@ -9,13 +9,13 @@ export const metadata: Metadata = { title: 'Settings — VitaTrack' }
 
 export default async function SettingsPage() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .maybeSingle()
 
   return (
@@ -26,13 +26,13 @@ export default async function SettingsPage() {
       </div>
       <SettingsClient
         profile={profile ?? null}
-        email={session.user.email ?? ''}
-        userId={session.user.id}
+        email={user.email ?? ''}
+        userId={user.id}
       />
       <ReminderSettings />
       <AppLockSettings
-        userId={session.user.id}
-        userName={(profile as any)?.full_name ?? session.user.email ?? 'VitaTrack user'}
+        userId={user.id}
+        userName={(profile as any)?.full_name ?? user.email ?? 'VitaTrack user'}
       />
     </div>
   )

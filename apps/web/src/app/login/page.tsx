@@ -11,9 +11,9 @@ export default async function LoginPage({
   searchParams: { returnTo?: string; tab?: string }
 }) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (session) redirect(searchParams.returnTo ?? '/dashboard')
+  if (user) redirect(searchParams.returnTo ?? '/dashboard')
 
   const initialTab = searchParams.tab === 'signup' ? 'signup' : 'signin'
 

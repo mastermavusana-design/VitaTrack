@@ -11,9 +11,9 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) redirect('/login')
+  if (!user) redirect('/login')
 
   // Verify this user is a caregiver (has at least one accepted family_members row)
   const { data: membership } = await supabase
@@ -27,17 +27,17 @@ export default async function DashboardLayout({
   const { data: profile } = await supabase
     .from('profiles')
     .select('full_name')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .maybeSingle()
 
   return (
     <AppLockProvider>
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <DashboardNav
-          userEmail={session.user.email ?? ''}
-          userName={(profile as any)?.full_name ?? session.user.email ?? 'User'}
+          userEmail={user.email ?? ''}
+          userName={(profile as any)?.full_name ?? user.email ?? 'User'}
           isCaregiver={!!membership}
-          ownerId={membership?.owner_id ?? session.user.id}
+          ownerId={membership?.owner_id ?? user.id}
         />
         <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
           {children}

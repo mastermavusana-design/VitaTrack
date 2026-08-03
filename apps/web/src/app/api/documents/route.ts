@@ -11,14 +11,14 @@ const VALID_CATEGORIES = ['prescription', 'lab_result', 'imaging', 'insurance', 
 
 export async function GET() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
-  let profileId = session.user.id
+  let profileId = user.id
   const { data: membership } = await supabase
     .from('family_members')
     .select('owner_id')
-    .eq('invitee_id', session.user.id)
+    .eq('invitee_id', user.id)
     .eq('status', 'accepted')
     .maybeSingle()
   if (membership) profileId = (membership as any).owner_id
@@ -39,8 +39,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const body = await req.json().catch(() => null)
 
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'file_name and storage_path are required' }, { status: 400 })
   }
   // Storage path must live under the caller's own folder (matches bucket RLS).
-  if (!storagePath.startsWith(`${session.user.id}/`)) {
+  if (!storagePath.startsWith(`${user.id}/`)) {
     return NextResponse.json({ error: 'Invalid storage path' }, { status: 400 })
   }
 
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase
     .from('health_documents')
     .insert({
-      profile_id:      session.user.id,
+      profile_id:      user.id,
       visit_id:        body.visit_id || null,
       category,
       file_name:       fileName,

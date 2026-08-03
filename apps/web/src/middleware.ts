@@ -11,19 +11,19 @@ export async function middleware(req: NextRequest) {
   const supabase = createMiddlewareClient({ req, res })
 
   // Refresh session if expired (keeps cookies in sync)
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const url = req.nextUrl.clone()
 
   // Protect /dashboard/*
-  if (url.pathname.startsWith('/dashboard') && !session) {
+  if (url.pathname.startsWith('/dashboard') && !user) {
     url.pathname = '/login'
     url.searchParams.set('returnTo', req.nextUrl.pathname)
     return NextResponse.redirect(url)
   }
 
   // Redirect already-logged-in users away from /login
-  if (url.pathname === '/login' && session) {
+  if (url.pathname === '/login' && user) {
     url.pathname = '/dashboard'
     url.searchParams.delete('returnTo')
     return NextResponse.redirect(url)

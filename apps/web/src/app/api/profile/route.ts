@@ -8,13 +8,13 @@ import { captureException, BLOOD_TYPES } from '@vitatrack/shared'
 
 export async function GET() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .maybeSingle()
 
   if (error) {
@@ -26,8 +26,8 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
 
@@ -69,7 +69,7 @@ export async function PATCH(req: NextRequest) {
   const { data, error } = await supabase
     .from('profiles')
     .update(patch)
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .select('id, full_name, blood_type, preferred_units, timezone')
     .single()
 

@@ -35,7 +35,7 @@ and share a single architectural fix, so they collapse together.
 | # | Issue | Severity | Effort |
 |---|---|---|---|
 | R1 | Web backend runs in London (`lhr1`) while app claims `af-south-1` / POPIA residency | 🔴 Critical | L |
-| R2 | Server auth uses `getSession()` (unverified) instead of `getUser()` | 🟠 High | M |
+| R2 | Server auth used `getSession()` (unverified) instead of `getUser()` | ✅ Done | M |
 | R3 | Deprecated `@supabase/auth-helpers-nextjs` — migrate to `@supabase/ssr` | 🟠 High | M |
 | R4 | Two overlapping reminder systems (Vercel cron **and** Supabase Edge crons) | 🟠 High | M |
 | R5 | Sync bug: vitals pull on `created_at`; no conflict resolution | 🟠 High (filter ✅ / structural ⏳) | M–L |
@@ -80,22 +80,20 @@ trust exposure, not just a config nit.
 
 ---
 
-## R2 — Server authorization trusts unverified sessions 🟠 High · M
+## R2 — Server authorization trusts unverified sessions ✅ Done (2026-08-03)
 
-**What.** 30 server-side `getSession()` calls vs 3 `getUser()`. On the server,
-`getSession()` returns the session from the cookie **without** revalidating the JWT against
-the auth server; API routes then authorize on `session.user.id`.
+**What.** 32 server-side `getSession()` calls across 24 files (API routes, dashboard pages,
+layout, middleware) authorized on `session.user.id` read from the cookie **without**
+revalidating the JWT against the auth server.
 
-**Why it matters.** Supabase explicitly documents that server code and middleware must use
-`getUser()` for authorization because it verifies the token. RLS is currently your backstop
-(good — 23 policies exist), but authorization decisions should not ride on unverified claims.
+**Done.** Every server-side authorization check now uses `getUser()` (which verifies the token
+with Supabase Auth). Migrated all 24 files — `session.user.id`/`.email` → `user.id`/`.email`,
+`!session` → `!user`, and the middleware `/dashboard` guard + `/login` redirect. Decoupled from
+R3: `getUser()` works on the current client, so no dependency change was needed. All 24 files
+pass the syntax check.
 
-**Fix.** Replace `getSession()` with `getUser()` in every server context (route handlers +
-`middleware.ts`). Use `getSession()` only where you need non-authoritative session presence.
-Pairs naturally with R3 (the `@supabase/ssr` migration touches the same call sites).
-
-**Acceptance.** No route handler or middleware makes an authorization decision from
-`getSession()`.
+**Acceptance.** ✅ No route handler, page, layout, or middleware makes an authorization
+decision from `getSession()`; RLS remains the second layer.
 
 ---
 

@@ -8,13 +8,13 @@ import { captureException } from '@vitatrack/shared'
 
 export async function GET() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { data, error } = await supabase
     .from('ice_profiles')
     .select('*')
-    .eq('profile_id', session.user.id)
+    .eq('profile_id', user.id)
     .maybeSingle()
 
   if (error) {
@@ -33,8 +33,8 @@ function toArray(value: unknown): string[] {
 
 export async function PUT(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
 
@@ -50,7 +50,7 @@ export async function PUT(req: NextRequest) {
     : []
 
   const payload = {
-    profile_id:          session.user.id,
+    profile_id:          user.id,
     blood_type:          body.blood_type || null,
     allergies:           toArray(body.allergies),
     conditions:          toArray(body.conditions),

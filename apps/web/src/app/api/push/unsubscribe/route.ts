@@ -8,8 +8,8 @@ import { captureException } from '@vitatrack/shared'
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const body = await req.json().catch(() => null)
   const endpoint = body?.endpoint
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   const { data: rows } = await supabase
     .from('push_tokens')
     .select('id, token')
-    .eq('profile_id', session.user.id)
+    .eq('profile_id', user.id)
     .eq('platform', 'web')
 
   const match = (rows ?? []).find((r: any) => {

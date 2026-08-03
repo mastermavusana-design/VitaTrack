@@ -11,8 +11,8 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
 
@@ -24,7 +24,7 @@ export async function PATCH(
     .maybeSingle()
 
   if (!med) return NextResponse.json({ error: 'Medication not found' }, { status: 404 })
-  if (med.profile_id !== session.user.id) {
+  if (med.profile_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -90,7 +90,7 @@ export async function PATCH(
         .from('medication_schedules')
         .insert({
           medication_id:    params.id,
-          profile_id:       session.user.id,
+          profile_id:       user.id,
           frequency:        body.frequency,
           times:            times.length > 0 ? times : ['08:00'],
           reminder_enabled: body.reminder_enabled ?? true,
@@ -110,8 +110,8 @@ export async function DELETE(
   { params }: { params: { id: string } },
 ) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { data: med } = await supabase
     .from('medications')
@@ -120,7 +120,7 @@ export async function DELETE(
     .maybeSingle()
 
   if (!med) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (med.profile_id !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (med.profile_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   // Soft-delete: archive instead of hard delete (preserves dose log history)
   const { error } = await supabase

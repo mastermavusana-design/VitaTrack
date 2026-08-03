@@ -8,21 +8,21 @@ export const revalidate = 0
 
 export default async function CaregiversPage() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   // Caregivers I have invited (I am owner)
   const { data: myInvites } = await supabase
     .from('family_members')
     .select('id, status, invitee_email, invite_token, invited_at, accepted_at, role')
-    .eq('owner_id', session.user.id)
+    .eq('owner_id', user.id)
     .order('invited_at', { ascending: false })
 
   // Check if I am myself a caregiver for someone else
   const { data: caregiverOf } = await supabase
     .from('family_members')
     .select('id, owner_id, status, role')
-    .eq('invitee_id', session.user.id)
+    .eq('invitee_id', user.id)
     .eq('status', 'accepted')
     .maybeSingle()
 
@@ -60,7 +60,7 @@ export default async function CaregiversPage() {
 
       <CaregiversClient
         invites={(myInvites ?? []) as any[]}
-        userId={session.user.id}
+        userId={user.id}
       />
     </div>
   )
