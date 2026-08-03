@@ -8,12 +8,14 @@ export const metadata: Metadata = { title: 'Sign In — VitaTrack' }
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { returnTo?: string }
+  searchParams: { returnTo?: string; tab?: string }
 }) {
   const supabase = createServerClient()
   const { data: { session } } = await supabase.auth.getSession()
 
   if (session) redirect(searchParams.returnTo ?? '/dashboard')
+
+  const initialTab = searchParams.tab === 'signup' ? 'signup' : 'signin'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800 flex items-center justify-center p-4">
@@ -36,7 +38,7 @@ export default async function LoginPage({
           <p className="text-sm text-gray-500 mb-6">
             Use the same account as the VitaTrack mobile app.
           </p>
-          <LoginClient returnTo={searchParams.returnTo} />
+          <LoginClient returnTo={searchParams.returnTo} initialTab={initialTab} />
         </div>
 
         <p className="text-center text-blue-300 text-xs mt-6">

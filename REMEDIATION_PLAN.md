@@ -271,9 +271,9 @@ device-native pieces.
 | On-device scan (OCR + barcode) | ✅ | ✅ | — | Tesseract (web) / ML Kit (mobile). |
 | ICE profile + public page | ✅ | ✅ | — | Verify web renders the QR, not just the link. |
 | Caregivers | ✅ (partial) | ✅ | — | Web is ahead here. |
-| **App lock** (biometric) | ✅ `(auth)/lock` | ❌ | M | Add WebAuthn/passkey or PIN lock + idle auto-lock. |
+| **App lock** (biometric) | ✅ `(auth)/lock` | ✅ PIN + passkey | done | `AppLockProvider` + overlay with idle auto-lock; PIN (salted SHA-256) or WebAuthn passkey; settings in Settings. |
 | **Offline-first** | ✅ WatermelonDB | ❌ online-only | L | Make web an installable PWA: cache shell + queue writes + background sync. `sw.js` is currently push-only. |
-| **Guided onboarding** | ✅ `(auth)/onboarding` | ❌ | M | Port the onboarding flow to web. |
+| **Guided onboarding** | ✅ `(auth)/onboarding` | ✅ `/onboarding` | done | 4-slide intro carousel; linked from landing + Get Started; feeds `login?tab=signup`. |
 | **Notifications history** | ✅ `notifications` screen | ✅ `/dashboard/notifications` | done | Aggregates refill alerts + today's missed/pending doses; added to nav. |
 | **Medication detail + dose history** | ✅ `medications/[id]` | ✅ `/dashboard/medications/[id]` | done | Hero, 30-day adherence, supply, schedule, details, recent-dose timeline; cards link to it. |
 | **Signed capture provenance** | ✅ ed25519 | ⚠️ verify | S–M | Confirm web scans attach the same signed provenance as mobile. |

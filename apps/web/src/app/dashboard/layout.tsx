@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase'
 import DashboardNav from '@/components/DashboardNav'
 import InAppReminders from '@/components/reminders/InAppReminders'
+import AppLockProvider from '@/components/lock/AppLockProvider'
 
 export default async function DashboardLayout({
   children,
@@ -29,17 +30,19 @@ export default async function DashboardLayout({
     .maybeSingle()
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <DashboardNav
-        userEmail={session.user.email ?? ''}
-        userName={(profile as any)?.full_name ?? session.user.email ?? 'User'}
-        isCaregiver={!!membership}
-        ownerId={membership?.owner_id ?? session.user.id}
-      />
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
-        {children}
-      </main>
-      <InAppReminders />
-    </div>
+    <AppLockProvider>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <DashboardNav
+          userEmail={session.user.email ?? ''}
+          userName={(profile as any)?.full_name ?? session.user.email ?? 'User'}
+          isCaregiver={!!membership}
+          ownerId={membership?.owner_id ?? session.user.id}
+        />
+        <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
+          {children}
+        </main>
+        <InAppReminders />
+      </div>
+    </AppLockProvider>
   )
 }

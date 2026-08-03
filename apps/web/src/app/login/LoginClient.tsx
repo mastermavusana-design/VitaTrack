@@ -6,11 +6,11 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 type Tab = 'signin' | 'signup'
 
-export default function LoginClient({ returnTo }: { returnTo?: string }) {
+export default function LoginClient({ returnTo, initialTab }: { returnTo?: string; initialTab?: Tab }) {
   const router   = useRouter()
   const supabase = createClientComponentClient()
 
-  const [tab,       setTab]       = useState<Tab>('signin')
+  const [tab,       setTab]       = useState<Tab>(initialTab ?? 'signin')
   const [email,     setEmail]     = useState('')
   const [password,  setPassword]  = useState('')
   const [fullName,  setFullName]  = useState('')

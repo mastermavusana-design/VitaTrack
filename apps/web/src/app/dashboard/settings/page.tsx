@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase'
 import type { Metadata } from 'next'
 import SettingsClient from './SettingsClient'
 import ReminderSettings from '@/components/reminders/ReminderSettings'
+import AppLockSettings from '@/components/lock/AppLockSettings'
 
 export const metadata: Metadata = { title: 'Settings — VitaTrack' }
 
@@ -29,6 +30,10 @@ export default async function SettingsPage() {
         userId={session.user.id}
       />
       <ReminderSettings />
+      <AppLockSettings
+        userId={session.user.id}
+        userName={(profile as any)?.full_name ?? session.user.email ?? 'VitaTrack user'}
+      />
     </div>
   )
 }

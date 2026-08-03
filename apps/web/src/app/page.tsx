@@ -48,8 +48,11 @@ export default function HomePage() {
             VitaTrack helps South Africans manage chronic medications, track vitals, and share health data with caregivers — all from one secure platform.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/login" style={{ background: '#fff', color: '#1e3a5f', fontWeight: 800, fontSize: 15, padding: '14px 32px', borderRadius: 14, textDecoration: 'none' }}>
+            <Link href="/onboarding" style={{ background: '#fff', color: '#1e3a5f', fontWeight: 800, fontSize: 15, padding: '14px 32px', borderRadius: 14, textDecoration: 'none' }}>
               Get Started Free →
+            </Link>
+            <Link href="/onboarding" style={{ background: 'transparent', color: '#fff', fontWeight: 700, fontSize: 15, padding: '14px 28px', borderRadius: 14, textDecoration: 'none', border: '1.5px solid rgba(255,255,255,0.4)' }}>
+              Take the tour
             </Link>
           </div>
         </div>
