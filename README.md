@@ -1,6 +1,8 @@
 # VitaTrack
 
-A POPIA-compliant health companion for the South African market — medication tracking, vitals logging, health records, caregiver sharing, and an emergency (ICE) profile. Offline-first mobile app, web companion, and Supabase backend, all hosted in the `af-south-1` region.
+A POPIA-focused health companion for the South African market — medication tracking, vitals logging, health records, caregiver sharing, and an emergency (ICE) profile. Offline-first mobile app, web companion, and a Supabase backend (Postgres, Auth, Storage, Data API) in the `af-south-1` (Cape Town) region.
+
+> **Data residency (current state):** the Supabase database, Auth, Storage, and Data API run in `af-south-1`. The Next.js web tier's server routes and cron currently run on Vercel (EU) — so some web requests process data outside SA today. Migrating the web app to a client-direct + RLS model so PHI is processed only in `af-south-1` is tracked in `REMEDIATION_PLAN.md` (R1) with the implementation design in `R1_MIGRATION_DESIGN.md`.
 
 ## Monorepo layout
 

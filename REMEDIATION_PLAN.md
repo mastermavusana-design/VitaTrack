@@ -34,7 +34,7 @@ and share a single architectural fix, so they collapse together.
 
 | # | Issue | Severity | Effort |
 |---|---|---|---|
-| R1 | Web backend runs in London (`lhr1`) while app claims `af-south-1` / POPIA residency | 🔴 Critical | L |
+| R1 | Web backend runs in London (`lhr1`) while app claims `af-south-1` / POPIA residency | 🔴 Critical (approach set; RLS audit ✅) | L |
 | R2 | Server auth used `getSession()` (unverified) instead of `getUser()` | ✅ Done | M |
 | R3 | Deprecated `@supabase/auth-helpers-nextjs` — migrate to `@supabase/ssr` | 🟠 High | M |
 | R4 | Two overlapping reminder systems (Vercel cron **and** Supabase Edge crons) | 🟠 High | M |
@@ -65,18 +65,51 @@ African medical PII.
 product's headline compliance claim is contradicted by the deployment. This is a legal/
 trust exposure, not just a config nit.
 
-**Fix.**
-1. Make Supabase (already `af-south-1`) the only tier that touches PHI.
-2. Move server-side data logic out of Next.js API routes into Supabase Edge Functions
-   (which run in your project's region) or call Supabase directly from the client under RLS
-   (already done for reads).
-3. Reduce `apps/web` to frontend delivery + auth callback only. Vercel then serves static/
-   rendered pages; no PHI is processed there.
-4. If any Next.js route must stay server-side, host it somewhere with an African/adequate
-   region and document the data flow. Update the README to match reality either way.
+**Chosen approach (2026-08-03): client-direct + RLS.** A key finding rules out the original
+"move to Supabase Edge Functions" idea: **Edge Functions have no `af-south-1` region** — the
+supported invocation regions are AP / NA / EU / SA (São Paulo) only, and they default to the
+region nearest the caller. So Edge compute would still process PHI outside SA — the same problem
+as Vercel/London. What *does* run in `af-south-1` is the project's Postgres, Auth, Storage, and
+the **Data API (PostgREST)**. Therefore the residency-correct path is to have the browser call
+the af-south-1 Data API directly under RLS, and reserve Edge Functions only for the few
+operations that need server secrets (documenting their region).
+
+**RLS audit (2026-08-03) — prerequisite, PASSED.** Confirmed the policies already encode the
+authorization the `/api` routes enforce, so client-direct is safe without new policies:
+- Own writes: every core table has `FOR ALL USING (profile_id = auth.uid())`, which also gates
+  INSERT/UPDATE (WITH CHECK), so a user can only write their own rows.
+- Caregiver reads: `… family read USING (is_family_member(profile_id))` (SECURITY DEFINER helper).
+- Caregiver writes: the only on-behalf write path in the API is dose logging, and RLS has the
+  matching `dose_logs: dose_logger ins WITH CHECK (is_dose_logger(profile_id))`. All other `/api`
+  writes insert as the caller's own `profile_id` — already covered by own-CRUD.
+- Owner resolution: a caregiver reads their `family_members` row (`family: invitee read`) to find
+  `owner_id`, then reads the owner's data under family-read. No server hop required.
+
+**Migration plan (staged).**
+1. Flip pure own-write/own-read routes to direct Supabase calls under RLS: `push/subscribe`,
+   `push/unsubscribe`, `scan-captures`, `profile`, `vitals`, `medications`, `dose-logs`,
+   `documents`, `ice`, `doctor-visits`. Move the routes' input validation into the client using
+   `@vitatrack/shared` validators (DB CHECK constraints remain the integrity backstop).
+2. Move SSR reads (dashboard pages currently rendered server-side on Vercel/EU) to client-side
+   Supabase queries so reads also stay in af-south-1. (Biggest chunk; interacts with the offline
+   PWA/SSR model.)
+3. Keep only secret-requiring work as Edge Functions — reminder web-push send (VAPID),
+   `data-export` ZIP, `send-family-invite` (Resend). Document that these narrow, non-bulk ops
+   process transiently in the nearest region.
+4. (ICE public-read exposure noted in IMPLEMENTATION_PLAN §3.2 is **already remediated** by
+   `20240702000000_phase1_security_fixes.sql` — anon has no base-table SELECT; the page reads via
+   the `get_public_ice_profile` RPC. No action.)
+5. Update the README to describe the actual data flow. **Done (2026-08-03)** — the README now
+   states DB/Auth/Storage/Data API are in af-south-1 while the Vercel web tier currently runs in
+   the EU, pending this migration.
+
+Full implementation design (architecture, route map, offline data-layer, sequencing, test plan)
+is in **`R1_MIGRATION_DESIGN.md`**. The client-direct data-layer rebuild needs runtime testing and
+should be built test-first on a machine that can run the app — not blind-shipped from the static
+sandbox.
 
 **Acceptance.** No route that reads/writes `medications`, `vitals`, `documents`, `ice_profiles`,
-`dose_logs`, or `profiles` executes outside `af-south-1`.
+`dose_logs`, or `profiles` executes outside `af-south-1`; secret-only Edge ops are documented.
 
 ---
 
