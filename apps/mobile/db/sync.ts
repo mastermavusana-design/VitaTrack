@@ -55,7 +55,7 @@ async function pullVitals(supabase: ReturnType<typeof getSupabaseClient>, since:
     .from('vitals')
     .select('*')
     .eq('profile_id', profileId)
-    .gt('created_at', since)
+    .gt('updated_at', since)
     .order('recorded_at', { ascending: false })
     .limit(500)
 

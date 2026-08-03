@@ -1,14 +1,16 @@
 // ── useCapture ───────────────────────────────────────────────────────
-// Orchestrates the three extraction paths behind the camera screen and
-// returns the common ExtractionResult the review UI renders.
+// Orchestrates the extraction paths behind the camera screen and returns
+// the common ExtractionResult the review UI renders.
 //
 //   1. QR fast-path   — decode + verify a signed VitaTrack QR locally (offline, exact).
-//   2. On-device path — device screens (glucometer/BP/…): ML Kit OCR, parsed locally.
-//   3. Cloud path     — lab reports / prescriptions / documents via the
-//                       extract-reading Edge Function (in-region).
+//   2. On-device path — every photo (device screens AND lab reports / prescriptions /
+//                       documents) is read locally with ML Kit OCR. No image or PHI
+//                       ever leaves the device — this is the POPIA-safe design.
+//
+// (A cloud vision path via the extract-reading Edge Function was removed on
+//  2026-08-01 in favour of on-device-only extraction. See REMEDIATION_PLAN.md R6.)
 
 import TextRecognition from '@react-native-ml-kit/text-recognition'
-import { getSupabaseClient } from '@vitatrack/shared'
 import {
   verifyReadingQR, qrToExtraction, parseReadingQR, gateVitals, parseDeviceScreenText,
   type ExtractionResult, type CaptureArtifact, type VitalType,
@@ -65,31 +67,31 @@ async function extractOnDevice(imageUri: string, hint?: VitalType): Promise<Extr
   return { artifact: 'device_screen', method: 'on_device', engine: 'mlkit-text', vitals, warnings }
 }
 
-/** Cloud extraction via the in-region Edge Function. */
-async function extractCloud(artifact: CaptureArtifact, imageBase64: string, mimeType: string): Promise<CaptureOutcome> {
-  const supabase = getSupabaseClient()
-  const { data, error } = await supabase.functions.invoke('extract-reading', {
-    body: { artifact, imageBase64, mimeType },
-  })
-  if (error) return { kind: 'error', message: error.message }
-  const result = data as ExtractionResult
-  if (result.vitals) result.vitals = gateVitals(result.vitals)
-  return { kind: 'ok', result }
+/**
+ * On-device OCR for documents (lab reports / prescriptions / other docs).
+ * ML Kit reads the text locally; we surface a best-effort vitals parse and flag
+ * the result for manual review. Nothing is uploaded.
+ */
+async function extractDocumentOnDevice(imageUri: string, hint?: VitalType): Promise<ExtractionResult> {
+  const recognized = await TextRecognition.recognize(imageUri)
+  const text = recognized?.text ?? ''
+  const vitals = gateVitals(parseDeviceScreenText(text, hint))
+  const warnings = ['manual_review', ...(text.trim() === '' ? ['ocr_no_text'] : [])]
+  return { artifact: 'document', method: 'on_device', engine: 'mlkit-text', vitals, warnings }
 }
 
-/** Main entry: given a captured photo, produce a reviewable ExtractionResult. */
+/** Main entry: given a captured photo, produce a reviewable ExtractionResult — fully on-device. */
 export async function extractFromPhoto(
   artifact: CaptureArtifact,
   photo: { uri: string; base64?: string; mimeType?: string; vitalType?: VitalType },
 ): Promise<CaptureOutcome> {
-  if (artifact === 'device_screen') {
-    try {
-      const result = await extractOnDevice(photo.uri, photo.vitalType)
-      return { kind: 'ok', result }
-    } catch (e) {
-      return { kind: 'error', message: `On-device read failed: ${(e as Error).message}` }
-    }
+  if (!photo.uri) return { kind: 'error', message: 'No image captured.' }
+  try {
+    const result = artifact === 'device_screen'
+      ? await extractOnDevice(photo.uri, photo.vitalType)
+      : await extractDocumentOnDevice(photo.uri, photo.vitalType)
+    return { kind: 'ok', result }
+  } catch (e) {
+    return { kind: 'error', message: `On-device read failed: ${(e as Error).message}` }
   }
-  if (!photo.base64) return { kind: 'error', message: 'No image data captured.' }
-  return extractCloud(artifact, photo.base64, photo.mimeType ?? 'image/jpeg')
 }

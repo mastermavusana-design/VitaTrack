@@ -84,7 +84,9 @@ export default async function MedicationsPage() {
                     style={{ backgroundColor: med.color ?? '#1A569B' }}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-black text-gray-900">{med.name}</p>
+                    <a href={`/dashboard/medications/${med.id}`} className="font-black text-gray-900 hover:text-brand-900 transition-colors">
+                      {med.name}
+                    </a>
                     {med.generic_name && (
                       <p className="text-xs text-gray-400">{med.generic_name}</p>
                     )}
@@ -173,7 +175,7 @@ export default async function MedicationsPage() {
                   className="w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: med.color ?? '#9CA3AF' }}
                 />
-                <p className="text-sm font-medium text-gray-600 line-through flex-1">{med.name}</p>
+                <a href={`/dashboard/medications/${med.id}`} className="text-sm font-medium text-gray-600 line-through flex-1 hover:text-brand-900 hover:no-underline transition-colors">{med.name}</a>
                 {med.strength && (
                   <p className="text-xs text-gray-400">{med.strength}{med.strength_unit}</p>
                 )}

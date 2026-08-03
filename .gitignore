@@ -34,6 +34,9 @@ supabase/.temp/
 npm-debug.log*
 pnpm-debug.log*
 
+# Scratch / temp artifacts
+_tmp_*
+
 # OS / editor
 .DS_Store
 Thumbs.db
