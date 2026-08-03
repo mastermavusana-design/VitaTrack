@@ -6,6 +6,7 @@ import {
   getConfig, markActive, shouldBeLocked, verifyPin, unlockWithPasskey,
   type AppLockConfig,
 } from '@/lib/appLock'
+import { clearOfflineData } from '@/lib/pwa'
 
 /**
  * Wraps the dashboard. When App Lock is enabled and the device has been idle past
@@ -117,6 +118,7 @@ function LockOverlay({ hasPasskey, onUnlocked }: { hasPasskey: boolean; onUnlock
   }
 
   const signOut = async () => {
+    await clearOfflineData()
     await supabase.auth.signOut()
     window.location.href = '/login'
   }

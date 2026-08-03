@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase'
 import DashboardNav from '@/components/DashboardNav'
 import InAppReminders from '@/components/reminders/InAppReminders'
 import AppLockProvider from '@/components/lock/AppLockProvider'
+import PwaBootstrap from '@/components/pwa/PwaBootstrap'
 
 export default async function DashboardLayout({
   children,
@@ -42,6 +43,7 @@ export default async function DashboardLayout({
           {children}
         </main>
         <InAppReminders />
+        <PwaBootstrap />
       </div>
     </AppLockProvider>
   )

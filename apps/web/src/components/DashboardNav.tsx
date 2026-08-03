@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useEffect, useState } from 'react'
+import { clearOfflineData } from '@/lib/pwa'
 
 interface DashboardNavProps {
   userEmail: string
@@ -23,6 +24,7 @@ export default function DashboardNav({ userEmail, userName, isCaregiver }: Dashb
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
+    await clearOfflineData()
     await supabase.auth.signOut()
     router.push('/')
   }

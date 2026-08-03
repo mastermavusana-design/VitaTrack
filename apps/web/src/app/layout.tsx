@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -7,6 +7,24 @@ export const metadata: Metadata = {
     template: '%s — VitaTrack',
   },
   description: 'Your personal health companion — medication tracking, vitals, and emergency profiles for South Africa.',
+  manifest: '/manifest.webmanifest',
+  applicationName: 'VitaTrack',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'VitaTrack',
+  },
+  icons: {
+    icon: '/brand/icon.png',
+    apple: '/brand/icon.png',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#1A569B',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

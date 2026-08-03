@@ -1,0 +1,24 @@
+{
+  "name": "VitaTrack — Health Companion",
+  "short_name": "VitaTrack",
+  "description": "Medication tracking, vitals, health records, and emergency profiles — POPIA-compliant, built for South Africa.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f9fafb",
+  "theme_color": "#1A569B",
+  "lang": "en-ZA",
+  "categories": ["health", "medical", "lifestyle"],
+  "icons": [
+    { "src": "/brand/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Medications", "url": "/dashboard/medications" },
+    { "name": "Log a vital", "url": "/dashboard/vitals" },
+    { "name": "Notifications", "url": "/dashboard/notifications" },
+    { "name": "Emergency (ICE)", "url": "/dashboard/ice" }
+  ]
+}

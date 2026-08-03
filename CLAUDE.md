@@ -11,10 +11,12 @@
   feature set as the baseline; the web companion should reach and stay at parity with it.
 - When adding a feature to mobile, add (or plan) the web equivalent too. When reviewing
   gaps, measure the web app against mobile, not the other way around.
-- Current known parity gaps (web is missing / partial): app lock (biometric → passkey/PIN),
-  offline-first (mobile uses WatermelonDB; web is online-only — needs PWA/offline),
-  guided onboarding, a notifications-history screen, a medication detail + dose-history
-  view, and signed on-device capture provenance. See `REMEDIATION_PLAN.md` R12.
+- Parity status (see `REMEDIATION_PLAN.md` R12): app lock (PIN + passkey), offline-first
+  (installable PWA + service-worker caching + offline write queue), guided onboarding,
+  notifications-history screen, and medication detail + dose-history view are all DONE.
+  Remaining partial: signed on-device capture provenance (verify web matches mobile's ed25519).
+  Deferred with the data-layer rework: local-first reads of never-visited routes offline and
+  field-level sync conflict resolution (R5 structural + R1 thin-web-tier).
 
 ## Environment note
 - The repo is a Windows folder mounted into the Linux sandbox. The mount blocks

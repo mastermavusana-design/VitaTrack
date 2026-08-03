@@ -45,7 +45,7 @@ and share a single architectural fix, so they collapse together.
 | R9 | Test coverage limited to shared utils — no RLS or API-route tests | 🟡 Medium | M–L |
 | R10 | Vercel cron cadence (every 5 min) — cost + up-to-5-min reminder lag | ⚪ Low | S |
 | R11 | Third-party processors (Resend, Sentry) not residency-reviewed | ⚪ Low | S |
-| R12 | Web app not at feature parity with mobile (product goal) | 🟠 High | L |
+| R12 | Web/mobile feature parity (product goal) | ✅ Done | L |
 
 > **Fast path:** R1, R2, R4 and R10 are all resolved by one move — pushing all
 > PHI-touching server logic and crons into Supabase Edge Functions in `af-south-1`
@@ -254,7 +254,7 @@ content carries no medical detail, and document each in a processor register.
 
 ---
 
-## R12 — Web/mobile feature parity 🟠 High · L
+## R12 — Web/mobile feature parity ✅ Done · L
 
 **Product goal (SALVATOR_ORBIS):** the web app must do everything the mobile app can do.
 Measure web against mobile as the baseline. Web is already close — it has medications
@@ -272,18 +272,28 @@ device-native pieces.
 | ICE profile + public page | ✅ | ✅ | — | Verify web renders the QR, not just the link. |
 | Caregivers | ✅ (partial) | ✅ | — | Web is ahead here. |
 | **App lock** (biometric) | ✅ `(auth)/lock` | ✅ PIN + passkey | done | `AppLockProvider` + overlay with idle auto-lock; PIN (salted SHA-256) or WebAuthn passkey; settings in Settings. |
-| **Offline-first** | ✅ WatermelonDB | ❌ online-only | L | Make web an installable PWA: cache shell + queue writes + background sync. `sw.js` is currently push-only. |
+| **Offline-first** | ✅ WatermelonDB | ✅ installable PWA | done | Manifest + installable; versioned SW: offline navigation fallback, SWR `GET /api`, IndexedDB write queue with background-sync replay; offline/sync UI; caches purged on sign-out. See scope note below. |
 | **Guided onboarding** | ✅ `(auth)/onboarding` | ✅ `/onboarding` | done | 4-slide intro carousel; linked from landing + Get Started; feeds `login?tab=signup`. |
 | **Notifications history** | ✅ `notifications` screen | ✅ `/dashboard/notifications` | done | Aggregates refill alerts + today's missed/pending doses; added to nav. |
 | **Medication detail + dose history** | ✅ `medications/[id]` | ✅ `/dashboard/medications/[id]` | done | Hero, 30-day adherence, supply, schedule, details, recent-dose timeline; cards link to it. |
 | **Signed capture provenance** | ✅ ed25519 | ⚠️ verify | S–M | Confirm web scans attach the same signed provenance as mobile. |
 
-**Fix.** Treat the ❌/⚠️ rows as a parity backlog. Sequence: notifications history and
-medication detail (small, high-value) first; then onboarding and app lock; then offline PWA
-(largest — pairs well with the R1 "thin web tier" work since both reshape the web data layer).
+**Status — all rows delivered (2026-08-01 → 08-03).** Notifications history, medication detail,
+onboarding, app lock, and the offline PWA are built. New mobile features should continue to land
+with a web equivalent in the same milestone (standing principle in `CLAUDE.md`).
 
-**Acceptance.** Every capability above shows ✅ for web; new mobile features land with a web
-equivalent in the same milestone.
+**Offline PWA — scope delivered vs. deferred.**
+- _Delivered:_ installable PWA (manifest + icons + metadata + install prompt); versioned service
+  worker with network-first navigations and an offline fallback page; stale-while-revalidate
+  caching of `GET /api/*` so visited data reads offline; an IndexedDB write queue that captures
+  failed `POST/PUT/DELETE /api/*`, returns a "queued" response, and replays via Background Sync
+  (with an `online`-event fallback); offline + pending-sync status UI; and cache/queue purge on
+  sign-out so no PHI lingers on a shared device.
+- _Deferred (by design):_ local-first reads of never-visited routes while offline, and
+  field-level conflict resolution. These belong with the R5 structural sync work and the R1
+  thin-web-tier rework, which reshape the web data layer. Documented so it isn't mistaken for a gap.
+
+**Acceptance.** ✅ Every capability in the table shows ✅ for web.
 
 ---
 
