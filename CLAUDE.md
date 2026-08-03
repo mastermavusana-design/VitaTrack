@@ -13,8 +13,9 @@
   gaps, measure the web app against mobile, not the other way around.
 - Parity status (see `REMEDIATION_PLAN.md` R12): app lock (PIN + passkey), offline-first
   (installable PWA + service-worker caching + offline write queue), guided onboarding,
-  notifications-history screen, and medication detail + dose-history view are all DONE.
-  Remaining partial: signed on-device capture provenance (verify web matches mobile's ed25519).
+  notifications-history screen, medication detail + dose-history view, and signed capture
+  provenance (web verifies signed reading-QRs via WebCrypto Ed25519, parity with mobile's
+  @noble) are all DONE — R12 is fully closed.
   Deferred with the data-layer rework: local-first reads of never-visited routes offline and
   field-level sync conflict resolution (R5 structural + R1 thin-web-tier).
 

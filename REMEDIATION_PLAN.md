@@ -276,11 +276,22 @@ device-native pieces.
 | **Guided onboarding** | ✅ `(auth)/onboarding` | ✅ `/onboarding` | done | 4-slide intro carousel; linked from landing + Get Started; feeds `login?tab=signup`. |
 | **Notifications history** | ✅ `notifications` screen | ✅ `/dashboard/notifications` | done | Aggregates refill alerts + today's missed/pending doses; added to nav. |
 | **Medication detail + dose history** | ✅ `medications/[id]` | ✅ `/dashboard/medications/[id]` | done | Hero, 30-day adherence, supply, schedule, details, recent-dose timeline; cards link to it. |
-| **Signed capture provenance** | ✅ ed25519 | ⚠️ verify | S–M | Confirm web scans attach the same signed provenance as mobile. |
+| **Signed capture provenance** | ✅ ed25519 | ✅ WebCrypto ed25519 | done | Web now verifies signed reading-QRs (WebCrypto Ed25519 + `qr_issuer_keys` directory) like mobile, and records `qr`/`scan` method on the `scan_capture` + vital. |
 
 **Status — all rows delivered (2026-08-01 → 08-03).** Notifications history, medication detail,
-onboarding, app lock, and the offline PWA are built. New mobile features should continue to land
-with a web equivalent in the same milestone (standing principle in `CLAUDE.md`).
+onboarding, app lock, the offline PWA, and signed-QR capture provenance are built. New mobile
+features should continue to land with a web equivalent in the same milestone (standing principle
+in `CLAUDE.md`).
+
+**Capture provenance — how web now matches mobile.** The scan-capture audit trail (`scan_captures`
+row + `source`/`capture_id` on the vital/document) already existed on both. The missing half was
+cryptographic: mobile verifies Ed25519-signed reading-QRs against the `qr_issuer_keys` directory
+(via `@noble/ed25519`), while web only parsed QRs structurally and trusted nothing. Web now supplies
+a WebCrypto Ed25519 verify primitive (`apps/web/src/lib/qrVerify.ts`) to the same shared verifier,
+loads the trusted-key directory from `qr_issuer_keys`, and `ScanClient` grants a valid signature
+high confidence / flags an unverifiable QR — identical trust semantics to mobile. Where a browser
+lacks WebCrypto Ed25519, verification fails closed to the existing "unverified, manual-review" path
+(no regression).
 
 **Offline PWA — scope delivered vs. deferred.**
 - _Delivered:_ installable PWA (manifest + icons + metadata + install prompt); versioned service

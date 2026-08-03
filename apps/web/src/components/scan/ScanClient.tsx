@@ -6,8 +6,6 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import {
   parseDeviceScreenText,
   detectVitalType,
-  parseReadingQR,
-  qrToExtraction,
   overallConfidence,
   type VitalsExtraction,
   type VitalType,
@@ -15,6 +13,7 @@ import {
 } from '@vitatrack/shared'
 import { ocrImage, type OcrProgress } from '@/lib/ocr'
 import { detectBarcode, barcodeDetectionSupported, isProductBarcode } from '@/lib/barcode'
+import { verifyScannedQr, refreshTrustedKeys } from '@/lib/qrVerify'
 
 type Artifact = 'device_screen' | 'prescription' | 'document' | 'medication'
 type Stage = 'permission' | 'camera' | 'working' | 'review-vitals' | 'review-doc' | 'barcode' | 'saved' | 'error'
@@ -65,6 +64,10 @@ export default function ScanClient({ artifact, vitalHint }: Props) {
   const [conf, setConf] = useState<Record<string, FieldConfidence>>({})
   const [overall, setOverall] = useState<number>(0)
   const [rawExtract, setRawExtract] = useState<unknown>(null)
+  // Provenance of the current reading (recorded on the scan_capture row).
+  const [capMeta, setCapMeta] = useState<{ artifact: string; method: string; engine: string }>({
+    artifact: 'device_screen', method: 'on_device', engine: 'tesseract.js@5',
+  })
 
   // document review state
   const [docCategory, setDocCategory] = useState(artifact === 'prescription' ? 'prescription' : 'hospital')
@@ -107,6 +110,9 @@ export default function ScanClient({ artifact, vitalHint }: Props) {
 
   useEffect(() => () => stopCamera(), [stopCamera])
 
+  // Load the trusted QR issuer keys once so signed reading-QRs can be verified.
+  useEffect(() => { void refreshTrustedKeys() }, [])
+
   // ── Continuous barcode/QR detection while the camera is live ────────
   useEffect(() => {
     if (stage !== 'camera') return
@@ -118,13 +124,16 @@ export default function ScanClient({ artifact, vitalHint }: Props) {
       }
       const hit = await detectBarcode(videoRef.current)
       if (hit && active) {
-        // A VitaTrack signed reading QR → import into the vitals review.
-        const parsed = parseReadingQR(hit.rawValue)
-        if (parsed.ok) {
-          const result = qrToExtraction(parsed.parsed.payload)
-          if (result.vitals) {
+        // A VitaTrack reading QR → verify its Ed25519 signature (parity with mobile).
+        // A valid signature loads at high confidence; an unverifiable VitaTrack QR
+        // still loads but is flagged for mandatory review; anything else is ignored.
+        const outcome = await verifyScannedQr(hit.rawValue)
+        if (outcome.kind === 'verified' || outcome.kind === 'unverified') {
+          if (outcome.result.vitals) {
             stopCamera()
-            loadVitalsExtraction(result.vitals, true)
+            loadVitalsExtraction(outcome.result.vitals, outcome.kind === 'unverified', {
+              artifact: 'qr', method: 'qr', engine: outcome.result.engine ?? 'qr',
+            })
             return
           }
         }
@@ -154,7 +163,12 @@ export default function ScanClient({ artifact, vitalHint }: Props) {
   }
 
   // ── Vitals: OCR → parse → review ───────────────────────────────────
-  function loadVitalsExtraction(ext: VitalsExtraction, unverified: boolean) {
+  function loadVitalsExtraction(
+    ext: VitalsExtraction,
+    unverified: boolean,
+    meta: { artifact: string; method: string; engine: string } = { artifact: 'device_screen', method: 'on_device', engine: 'tesseract.js@5' },
+  ) {
+    setCapMeta(meta)
     const t = ext.type
     setVitalsType(t)
     const f: Record<string, string> = {}
@@ -193,12 +207,14 @@ export default function ScanClient({ artifact, vitalHint }: Props) {
     try {
       const capRes = await fetch('/api/scan-captures', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ artifact: 'device_screen', method: 'on_device', engine: 'tesseract.js@5', raw_extract: rawExtract, overall_conf: overall }),
+        body: JSON.stringify({ artifact: capMeta.artifact, method: capMeta.method, engine: capMeta.engine, raw_extract: rawExtract, overall_conf: overall }),
       })
       const capJson = await capRes.json().catch(() => ({}))
       const captureId = capJson?.capture?.id ?? null
 
-      const payload: Record<string, unknown> = { type: vitalsType, source: 'scan', capture_id: captureId }
+      // Provenance: a verified QR reading is 'qr'-sourced; OCR is 'scan'-sourced.
+      const source = capMeta.method === 'qr' ? 'qr' : 'scan'
+      const payload: Record<string, unknown> = { type: vitalsType, source, capture_id: captureId }
       const num = (k: string) => vitalFields[k] ? Number(vitalFields[k]) : undefined
       if (vitalsType === 'blood_pressure') { payload.systolic = num('systolic'); payload.diastolic = num('diastolic'); if (vitalFields.pulse) payload.pulse = num('pulse') }
       if (vitalsType === 'glucose') { payload.glucose_value = num('glucose_value'); payload.glucose_unit = vitalFields.glucose_unit || 'mmol/L' }
