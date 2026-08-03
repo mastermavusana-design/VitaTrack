@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Modal from '@/components/ui/Modal'
 import { MEAL_CONTEXTS, BP_POSITIONS } from '@vitatrack/shared'
 import type { VitalType } from '@vitatrack/shared'
+import { CLIENT_DIRECT, queuedInsert, currentUserId } from '@/lib/dataStore'
 
 const TYPES: { value: VitalType; label: string }[] = [
   { value: 'blood_pressure', label: '❤️ Blood Pressure' },
@@ -34,6 +35,22 @@ export default function AddVitalButton({ defaultType }: { defaultType?: VitalTyp
 
   async function submit() {
     setSaving(true); setError(null)
+
+    // ── R1 client-direct path (flagged; writes straight to af-south-1 under RLS,
+    //    with offline queue). Falls back to the /api route when the flag is off. ──
+    if (CLIENT_DIRECT) {
+      const profileId = await currentUserId()
+      if (!profileId) { setError('Session expired — please sign in again'); setSaving(false); return }
+      const built = buildVitalRow(type, f, profileId)
+      if ('error' in built) { setError(built.error); setSaving(false); return }
+      const res = await queuedInsert('vitals', built.row)
+      if (!res.ok) { setError(res.error); setSaving(false); return }
+      setOpen(false); reset()
+      if (!res.queued) router.refresh()   // offline writes appear after reconnect
+      setSaving(false)
+      return
+    }
+
     const payload: Record<string, unknown> = { type }
     if (f.notes) payload.notes = f.notes
     switch (type) {
@@ -191,6 +208,59 @@ export default function AddVitalButton({ defaultType }: { defaultType?: VitalTyp
       </Modal>
     </>
   )
+}
+
+/** Build a typed vitals row for the client-direct path. Returns { row } or { error }. */
+function buildVitalRow(
+  type: VitalType,
+  f: Record<string, string>,
+  profileId: string,
+): { row: Record<string, unknown> } | { error: string } {
+  const row: Record<string, unknown> = { profile_id: profileId, type, source: 'manual' }
+  if (f.notes) row.notes = f.notes
+
+  const pos = (v: string | undefined, label: string): number | { error: string } => {
+    const n = Number(v)
+    if (v == null || v === '' || !Number.isFinite(n) || n <= 0) return { error: `${label} is required` }
+    return n
+  }
+
+  switch (type) {
+    case 'blood_pressure': {
+      const s = pos(f.systolic, 'Systolic'); if (typeof s !== 'number') return s
+      const d = pos(f.diastolic, 'Diastolic'); if (typeof d !== 'number') return d
+      row.systolic = s; row.diastolic = d
+      if (f.pulse) { const p = Number(f.pulse); if (Number.isFinite(p) && p > 0) row.pulse = p }
+      if (f.bp_position) row.bp_position = f.bp_position
+      break
+    }
+    case 'glucose': {
+      const g = pos(f.glucose_value, 'Glucose'); if (typeof g !== 'number') return g
+      row.glucose_value = g; row.glucose_unit = f.glucose_unit || 'mmol/L'; row.meal_context = f.meal_context || 'random'
+      break
+    }
+    case 'weight': {
+      const w = pos(f.weight_value, 'Weight'); if (typeof w !== 'number') return w
+      row.weight_value = w; row.weight_unit = f.weight_unit || 'kg'
+      break
+    }
+    case 'temperature': {
+      const t = pos(f.temp_value, 'Temperature'); if (typeof t !== 'number') return t
+      row.temp_value = t; row.temp_unit = f.temp_unit || '°C'
+      break
+    }
+    case 'spo2': {
+      const v = pos(f.spo2_value, 'SpO2'); if (typeof v !== 'number') return v
+      row.spo2_value = v
+      break
+    }
+    case 'heart_rate': {
+      const h = pos(f.heart_rate, 'Heart rate'); if (typeof h !== 'number') return h
+      row.heart_rate = h
+      break
+    }
+  }
+  return { row }
 }
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {

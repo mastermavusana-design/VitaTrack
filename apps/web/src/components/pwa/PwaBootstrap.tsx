@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { initClientQueue } from '@/lib/dataStore'
 
 /**
  * PWA bootstrap — registers the service worker globally (previously it only
@@ -16,6 +17,7 @@ type BeforeInstallPromptEvent = Event & {
 export default function PwaBootstrap() {
   const [offline, setOffline] = useState(false)
   const [pending, setPending] = useState(0)
+  const [clientPending, setClientPending] = useState(0)
   const [installEvt, setInstallEvt] = useState<BeforeInstallPromptEvent | null>(null)
   const [installed, setInstalled] = useState(false)
 
@@ -42,6 +44,11 @@ export default function PwaBootstrap() {
     }
     const goOffline = () => setOffline(true)
 
+    // Client-direct offline write queue (R1) — no-op unless the flag is on.
+    initClientQueue()
+    const onClientQueue = (e: Event) => setClientPending((e as CustomEvent<number>).detail ?? 0)
+    window.addEventListener('vitatrack:clientq', onClientQueue as EventListener)
+
     navigator.serviceWorker.addEventListener('message', onMessage)
     window.addEventListener('online', goOnline)
     window.addEventListener('offline', goOffline)
@@ -51,6 +58,7 @@ export default function PwaBootstrap() {
       navigator.serviceWorker.removeEventListener('message', onMessage)
       window.removeEventListener('online', goOnline)
       window.removeEventListener('offline', goOffline)
+      window.removeEventListener('vitatrack:clientq', onClientQueue as EventListener)
     }
   }, [])
 
@@ -88,10 +96,10 @@ export default function PwaBootstrap() {
         </div>
       )}
 
-      {!offline && pending > 0 && (
+      {!offline && (pending + clientPending) > 0 && (
         <div className="pointer-events-auto rounded-full bg-brand-900 text-white text-sm font-medium px-4 py-2 shadow-lg flex items-center gap-2">
           <span className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-          Syncing {pending} pending change{pending === 1 ? '' : 's'}…
+          Syncing {pending + clientPending} pending change{(pending + clientPending) === 1 ? '' : 's'}…
         </div>
       )}
 

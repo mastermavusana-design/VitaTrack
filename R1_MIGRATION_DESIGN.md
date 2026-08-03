@@ -79,6 +79,18 @@ fetching into client components using the browser Supabase client + the read cac
 is the largest chunk and should follow the write path once the data layer exists. Auth-gating and
 the shell can stay server-rendered (no PHI in the shell).
 
+## 5a. Build status (2026-08-03)
+
+- ✅ **Step 1 — data layer:** `apps/web/src/lib/dataStore.ts` (IndexedDB write queue, `online`
+  replay, idempotent via client-generated `id` → 23505 = already-applied, pending-count events).
+- ✅ **Step 2 — vitals writes-first pilot:** `AddVitalButton` writes client-direct via
+  `queuedInsert('vitals', …)` when the flag is on, with typed row build + validation mirroring the
+  `/api/vitals` route; `PwaBootstrap` inits the queue and shows its pending count.
+- 🚩 **Gated OFF** behind `NEXT_PUBLIC_CLIENT_DIRECT=1` (see `.env.example`). Merging changes
+  nothing in production until the flag is set. **Enable only after the §7 test checklist passes
+  locally.** `/api/vitals` remains the fallback and is untouched.
+- ⏳ Not yet built: steps 3–7 (replicate writes, reads, retire `/api`, R4, README data flow).
+
 ## 6. Sequencing (each step independently shippable + tested)
 
 1. **Data layer module** — `lib/dataStore.ts`: typed read-through cache + write queue over the
