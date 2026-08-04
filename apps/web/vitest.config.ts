@@ -11,7 +11,9 @@ export default defineConfig({
   },
   resolve: {
     alias: [
-      { find: '@supabase/auth-helpers-nextjs', replacement: path.resolve(__dirname, 'test/supabaseStub.ts') },
+      // R3: dataStore now imports the browser client from '@/lib/supabaseClient';
+      // redirect that to the stub so the mock injects (must precede the '@' alias).
+      { find: '@/lib/supabaseClient', replacement: path.resolve(__dirname, 'test/supabaseStub.ts') },
       { find: '@', replacement: path.resolve(__dirname, 'src') },
     ],
   },

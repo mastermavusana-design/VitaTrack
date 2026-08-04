@@ -18,7 +18,7 @@ export function createServerClient() {
         getAll() {
           return store.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => store.set(name, value, options))
           } catch {

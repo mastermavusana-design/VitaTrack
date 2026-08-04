@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import {
-  getConfig, saveConfig, setPin, disableLock, setIdleMinutes, isValidPin,
+  getConfig, setPin, disableLock, setIdleMinutes, isValidPin,
   passkeySupported, registerPasskey, removePasskey,
   type AppLockConfig,
 } from '@/lib/appLock'
