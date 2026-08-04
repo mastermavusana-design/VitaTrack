@@ -2,8 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { CLIENT_DIRECT, queuedUpsert, currentUserId } from '@/lib/dataStore'
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown']
+
+/** Normalise a comma/newline separated string into a clean string[] (mirrors /api/ice). */
+function toArray(value: string): string[] {
+  return value.split(/[\n,]/).map(s => s.trim()).filter(Boolean)
+}
 
 interface Contact { name: string; relationship: string; phone: string }
 interface Ice {
@@ -47,6 +53,34 @@ export default function IceClient({ initial }: { initial: Ice | null }) {
 
   async function save() {
     setSaving(true); setError(null); setMsg(null)
+
+    // ── R1 client-direct path (flagged; ice_profiles upsert under own-CRUD RLS). ──
+    if (CLIENT_DIRECT) {
+      const uid = await currentUserId()
+      if (!uid) { setError('Session expired — please sign in again'); setSaving(false); return }
+      const cleanContacts = contacts
+        .filter(c => c && (c.name || c.phone))
+        .map(c => ({ name: c.name.trim(), relationship: c.relationship.trim(), phone: c.phone.trim() }))
+      const res = await queuedUpsert('ice_profiles', {
+        profile_id:          uid,
+        blood_type:          bloodType || null,
+        allergies:           toArray(allergies),
+        conditions:          toArray(conditions),
+        current_medications: toArray(medications),
+        emergency_contacts:  cleanContacts,
+        organ_donor:         organDonor,
+        do_not_resuscitate:  dnr,
+        additional_notes:    notes.trim() || null,
+        is_public:           isPublic,
+      }, 'profile_id')
+      if (!res.ok) { setError(res.error); setSaving(false); return }
+      setMsg('Emergency profile saved')
+      setTimeout(() => setMsg(null), 2500)
+      if (!res.queued) router.refresh()
+      setSaving(false)
+      return
+    }
+
     try {
       const res = await fetch('/api/ice', {
         method: 'PUT',

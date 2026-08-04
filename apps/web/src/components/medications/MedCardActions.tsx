@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import MedicationForm, { type MedInitial } from './MedicationForm'
+import { CLIENT_DIRECT, queuedInsert, queuedUpdate, resolveOwnerContext } from '@/lib/dataStore'
 
 /** Quick dose-logging (Take / Skip), edit and archive controls for a medication card. */
 export default function MedCardActions({ med }: { med: MedInitial }) {
@@ -14,6 +15,28 @@ export default function MedCardActions({ med }: { med: MedInitial }) {
   async function logDose(status: 'taken' | 'skipped') {
     setBusy(status)
     try {
+      // ── R1 client-direct path (flagged; dose_logs insert under RLS, caregiver-aware). ──
+      if (CLIENT_DIRECT) {
+        const ctx = await resolveOwnerContext()
+        if (!ctx) { setFlash('Session expired'); setTimeout(() => setFlash(null), 2500); return }
+        if (ctx.role !== 'owner' && ctx.role !== 'dose_logger') {
+          setFlash('Viewer access only — Dose Logger role required')
+          setTimeout(() => setFlash(null), 2500); return
+        }
+        const res = await queuedInsert('dose_logs', {
+          medication_id: med.id,
+          profile_id:    ctx.profileId,
+          logged_by:     ctx.selfId,
+          status,
+          logged_at:     new Date().toISOString(),
+        })
+        if (!res.ok) { setFlash(res.error); setTimeout(() => setFlash(null), 2500); return }
+        setFlash(status === 'taken' ? '✓ Logged as taken' : 'Marked skipped')
+        setTimeout(() => setFlash(null), 2000)
+        if (!res.queued) router.refresh()
+        return
+      }
+
       const res = await fetch('/api/dose-logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -37,6 +60,17 @@ export default function MedCardActions({ med }: { med: MedInitial }) {
     if (!confirm(`Archive ${med.name}? Its history is kept.`)) return
     setBusy('archive')
     try {
+      // ── R1 client-direct path (flagged; soft-delete via update under own-CRUD RLS). ──
+      if (CLIENT_DIRECT) {
+        const res = await queuedUpdate(
+          'medications',
+          { is_active: false, archived_at: new Date().toISOString() },
+          { id: med.id },
+        )
+        if (res.ok && !res.queued) router.refresh()
+        return
+      }
+
       const res = await fetch(`/api/medications/${med.id}`, { method: 'DELETE' })
       if (res.ok) router.refresh()
     } finally {

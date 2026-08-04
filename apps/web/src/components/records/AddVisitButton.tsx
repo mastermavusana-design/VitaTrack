@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Modal from '@/components/ui/Modal'
+import { CLIENT_DIRECT, queuedInsert, currentUserId } from '@/lib/dataStore'
 
 const VISIT_TYPES = [
   { value: 'gp',         label: '👨‍⚕️ GP' },
@@ -26,6 +27,34 @@ export default function AddVisitButton() {
   async function submit() {
     if (!f.visit_date) { setError('Visit date is required'); return }
     setSaving(true); setError(null)
+
+    // ── R1 client-direct path (flagged; doctor_visits insert under own-CRUD RLS). ──
+    if (CLIENT_DIRECT) {
+      const uid = await currentUserId()
+      if (!uid) { setError('Session expired — please sign in again'); setSaving(false); return }
+      const VALID = ['gp', 'specialist', 'emergency', 'dentist', 'pharmacy', 'other']
+      const t = (s?: string) => (s && s.trim()) ? s.trim() : null
+      const res = await queuedInsert('doctor_visits', {
+        profile_id:     uid,
+        visit_date:     f.visit_date,
+        visit_type:     VALID.includes(f.visit_type) ? f.visit_type : 'other',
+        provider_name:  t(f.provider_name) ?? t(f.doctor_name),
+        specialty:      t(f.specialty),
+        facility:       t(f.facility),
+        reason:         t(f.reason),
+        diagnosis:      t(f.diagnosis),
+        treatment:      t(f.treatment),
+        follow_up_date: f.follow_up_date || null,
+        notes:          t(f.notes),
+      })
+      if (!res.ok) { setError(res.error); setSaving(false); return }
+      setOpen(false)
+      setF({ visit_type: 'gp', visit_date: today })
+      if (!res.queued) router.refresh()
+      setSaving(false)
+      return
+    }
+
     try {
       const res = await fetch('/api/doctor-visits', {
         method: 'POST',

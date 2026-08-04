@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabaseClient'
 import { useEffect, useState } from 'react'
 import { clearOfflineData } from '@/lib/pwa'
 

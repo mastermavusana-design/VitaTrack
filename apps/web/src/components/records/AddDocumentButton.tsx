@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabaseClient'
 import Modal from '@/components/ui/Modal'
+import { CLIENT_DIRECT, queuedInsert } from '@/lib/dataStore'
 
 const CATEGORIES = [
   { value: 'prescription', label: '💊 Prescription' },
@@ -44,6 +45,31 @@ export default function AddDocumentButton() {
         .from('health-documents')
         .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false })
       if (upErr) { setError(`Upload failed: ${upErr.message}`); setSaving(false); return }
+
+      // ── R1 client-direct path (flagged; health_documents insert under own-CRUD RLS). ──
+      if (CLIENT_DIRECT) {
+        const res = await queuedInsert('health_documents', {
+          profile_id:      user.id,
+          visit_id:        null,
+          category,
+          file_name:       file.name,
+          file_type:       file.type || null,
+          storage_path:    path,
+          file_size_bytes: file.size,
+          original_name:   file.name,
+          notes:           notes.trim() || null,
+          source:          'manual',
+          capture_id:      null,
+        })
+        if (!res.ok) {
+          await supabase.storage.from('health-documents').remove([path])
+          setError(res.error); setSaving(false); return
+        }
+        setOpen(false); reset()
+        if (!res.queued) router.refresh()
+        setSaving(false)
+        return
+      }
 
       const res = await fetch('/api/documents', {
         method: 'POST',

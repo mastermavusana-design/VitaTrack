@@ -68,6 +68,14 @@ schedule = "*/10 * * * *"
 verify_jwt = false
 schedule = "0 7 * * *"
 
+[functions.send-reminders]
+# R1 Phase D / R4: in-region (af-south-1) Web Push reminder sender — replaces the
+# Vercel cron /api/cron/reminders. Every 5 minutes (must match WINDOW_MIN in the
+# function). Requires VAPID_* secrets. Remove the Vercel `crons` entry only AFTER
+# this is deployed + verified (see R1_BUILD_PLAN.md Phase D).
+verify_jwt = false
+schedule = "*/5 * * * *"
+
 [functions.data-export]
 verify_jwt = false
 

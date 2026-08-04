@@ -3,8 +3,7 @@
  * Handles the code exchange for magic links and OAuth (e.g. Google Sign-In).
  * Next.js Route Handler — runs on the server.
  */
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies }                   from 'next/headers'
+import { createServerClient }        from '@/lib/supabase'
 import { NextResponse }              from 'next/server'
 import type { NextRequest }          from 'next/server'
 
@@ -16,8 +15,7 @@ export async function GET(request: NextRequest) {
   const returnTo   = requestUrl.searchParams.get('next') ?? '/dashboard'
 
   if (code) {
-    const cookieStore = cookies()
-    const supabase    = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createServerClient()
     await supabase.auth.exchangeCodeForSession(code)
   }
 

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabaseClient'
+import { CLIENT_DIRECT, queuedInsert, currentUserId } from '@/lib/dataStore'
 import {
   parseDeviceScreenText,
   detectVitalType,
@@ -204,6 +205,37 @@ export default function ScanClient({ artifact, vitalHint }: Props) {
 
   async function saveVitals() {
     setSaving(true); setError(null)
+
+    // ── R1 client-direct path (flagged; scan_captures + vitals inserts under RLS). ──
+    if (CLIENT_DIRECT) {
+      const uid = await currentUserId()
+      if (!uid) { setError('Session expired — please sign in again'); setSaving(false); return }
+      const cap = await queuedInsert('scan_captures', {
+        profile_id:   uid,
+        artifact:     capMeta.artifact,
+        method:       capMeta.method,
+        engine:       capMeta.engine ?? null,
+        raw_extract:  rawExtract ?? null,
+        overall_conf: typeof overall === 'number' ? overall : null,
+        status:       'reviewed',
+      })
+      const captureId = cap.ok && !cap.queued ? (cap.data as any)?.id ?? null : null
+
+      const source = capMeta.method === 'qr' ? 'qr' : 'scan'
+      const row: Record<string, unknown> = { profile_id: uid, type: vitalsType, source, capture_id: captureId }
+      const num = (k: string) => vitalFields[k] ? Number(vitalFields[k]) : undefined
+      if (vitalsType === 'blood_pressure') { row.systolic = num('systolic'); row.diastolic = num('diastolic'); if (vitalFields.pulse) row.pulse = num('pulse') }
+      if (vitalsType === 'glucose') { row.glucose_value = num('glucose_value'); row.glucose_unit = vitalFields.glucose_unit || 'mmol/L' }
+      if (vitalsType === 'weight') { row.weight_value = num('weight_value'); row.weight_unit = vitalFields.weight_unit || 'kg' }
+      if (vitalsType === 'temperature') { row.temp_value = num('temp_value'); row.temp_unit = vitalFields.temp_unit || '°C' }
+      if (vitalsType === 'spo2') row.spo2_value = num('spo2_value')
+      if (vitalsType === 'heart_rate') row.heart_rate = num('heart_rate')
+
+      const res = await queuedInsert('vitals', row)
+      if (!res.ok) { setError(res.error); setSaving(false); return }
+      setStage('saved'); setSaving(false); return
+    }
+
     try {
       const capRes = await fetch('/api/scan-captures', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -272,6 +304,36 @@ export default function ScanClient({ artifact, vitalHint }: Props) {
         .from('health-documents')
         .upload(path, shotRef.current, { contentType: 'image/jpeg', upsert: false })
       if (upErr) { setError(`Upload failed: ${upErr.message}`); setSaving(false); return }
+
+      // ── R1 client-direct path (flagged; scan_captures + health_documents inserts under RLS). ──
+      if (CLIENT_DIRECT) {
+        const cap = await queuedInsert('scan_captures', {
+          profile_id: user.id,
+          artifact:   artifact === 'prescription' ? 'prescription' : 'document',
+          method:     'on_device',
+          engine:     'camera',
+          status:     'reviewed',
+        })
+        const captureId = cap.ok && !cap.queued ? (cap.data as any)?.id ?? null : null
+        const res = await queuedInsert('health_documents', {
+          profile_id:      user.id,
+          visit_id:        null,
+          category:        docCategory,
+          file_name:       docTitle || fname,
+          file_type:       'image/jpeg',
+          storage_path:    path,
+          file_size_bytes: shotRef.current.size,
+          original_name:   fname,
+          notes:           docNotes?.trim() || null,
+          source:          'scan',
+          capture_id:      captureId,
+        })
+        if (!res.ok) {
+          await supabase.storage.from('health-documents').remove([path])
+          setError(res.error); setSaving(false); return
+        }
+        setStage('saved'); setSaving(false); return
+      }
 
       const capRes = await fetch('/api/scan-captures', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },

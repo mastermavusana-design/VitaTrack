@@ -4,11 +4,13 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { retiredIfClientDirect } from '@/lib/apiRetired'
 import { captureException } from '@vitatrack/shared'
 
 const VALID_VISIT_TYPES = ['gp', 'specialist', 'emergency', 'dentist', 'pharmacy', 'other']
 
 export async function GET() {
+  const gone = retiredIfClientDirect(); if (gone) return gone
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
@@ -38,6 +40,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const gone = retiredIfClientDirect(); if (gone) return gone
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })

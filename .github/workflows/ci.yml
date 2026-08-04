@@ -175,3 +175,7 @@ jobs:
       - name: Validate migrations
         run: supabase db lint --schema public
         working-directory: .
+
+      - name: RLS policy tests (pgTAP)
+        run: supabase test db
+        working-directory: .

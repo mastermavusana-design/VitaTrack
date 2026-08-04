@@ -9,6 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { retiredIfClientDirect } from '@/lib/apiRetired'
 import {
   captureException,
   validateBloodPressure,
@@ -24,6 +25,7 @@ import {
 } from '@vitatrack/shared'
 
 export async function POST(req: NextRequest) {
+  const gone = retiredIfClientDirect(); if (gone) return gone
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -152,6 +154,7 @@ export async function POST(req: NextRequest) {
  * Returns vitals for the authenticated user (or their owner if caregiver).
  */
 export async function GET(req: NextRequest) {
+  const gone = retiredIfClientDirect(); if (gone) return gone
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Modal from '@/components/ui/Modal'
+import { CLIENT_DIRECT, queuedInsert, queuedUpdate, queuedDelete, currentUserId } from '@/lib/dataStore'
 import {
   MEDICATION_FORMS,
   STRENGTH_UNITS,
@@ -83,6 +84,71 @@ export default function MedicationForm({ open, onClose, mode, initial, barcode }
       frequency,
       times,
     }
+
+    // ── R1 client-direct path (flagged; medication + schedule writes under RLS). ──
+    if (CLIENT_DIRECT) {
+      const uid = await currentUserId()
+      if (!uid) { setError('Session expired — please sign in again'); setSaving(false); return }
+
+      const num = (v: string): number | null | 'bad' => {
+        if (v == null || v === '') return null
+        const n = Number(v)
+        return Number.isFinite(n) && n >= 0 ? n : 'bad'
+      }
+      const strengthN = num(strength), pillN = num(pillCount), refillN = num(refillThreshold)
+      if ([strengthN, pillN, refillN].includes('bad')) {
+        setError('Strength, pill count and refill threshold must be non-negative numbers'); setSaving(false); return
+      }
+
+      const medId = mode === 'add' ? globalThis.crypto.randomUUID() : initial!.id
+      const medRow: Record<string, unknown> = {
+        id:               medId,
+        profile_id:       uid,
+        name:             name.trim(),
+        generic_name:     genericName?.trim() || null,
+        form,
+        strength:         strengthN,
+        strength_unit:    strengthUnit,
+        instructions:     instructions?.trim() || null,
+        prescriber:       prescriber?.trim() || null,
+        pill_count:       pillN,
+        refill_threshold: refillN,
+        color,
+        reminder_enabled: reminderEnabled,
+        is_active:        true,
+      }
+
+      let res
+      if (mode === 'add') {
+        res = await queuedInsert('medications', medRow)
+      } else {
+        const { id: _id, profile_id: _pid, ...patch } = medRow
+        res = await queuedUpdate('medications', patch, { id: medId })
+      }
+      if (!res.ok) { setError(res.error); setSaving(false); return }
+
+      // Replace the dosing schedule (best-effort, parity with the /api route).
+      const VALID_FREQ = ['daily', 'twice_daily', 'three_times_daily', 'weekly', 'as_needed', 'custom']
+      const freq = VALID_FREQ.includes(frequency) ? frequency : 'daily'
+      if (mode === 'edit') await queuedDelete('medication_schedules', { medication_id: medId })
+      if (freq !== 'as_needed') {
+        const t = (times ?? []).filter(x => /^\d{2}:\d{2}$/.test(x))
+        await queuedInsert('medication_schedules', {
+          medication_id:    medId,
+          profile_id:       uid,
+          frequency:        freq,
+          times:            t.length ? t : ['08:00'],
+          reminder_enabled: reminderEnabled,
+          is_active:        true,
+        })
+      }
+
+      onClose()
+      if (!res.queued) router.refresh()
+      setSaving(false)
+      return
+    }
+
     try {
       const res = await fetch(
         mode === 'add' ? '/api/medications' : `/api/medications/${initial!.id}`,

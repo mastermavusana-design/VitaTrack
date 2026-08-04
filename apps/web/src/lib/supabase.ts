@@ -1,14 +1,33 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { createClient }               from '@supabase/supabase-js'
-import { cookies }                    from 'next/headers'
+import { createServerClient as createSSRServerClient } from '@supabase/ssr'
+import { createClient }                                from '@supabase/supabase-js'
+import { cookies }                                     from 'next/headers'
 
 /**
- * Server Component Supabase client — uses cookie-based auth session.
- * Use in Server Components and Route Handlers.
+ * Server Supabase client (R3 — @supabase/ssr). Cookie-based auth session.
+ * Use in Server Components and Route Handlers. In a Server Component the cookie
+ * `setAll` is a no-op (writes aren't allowed there) — the middleware refreshes the
+ * session cookie, so this is safe.
  */
 export function createServerClient() {
-  const cookieStore = cookies()
-  return createServerComponentClient({ cookies: () => cookieStore })
+  const store = cookies()
+  return createSSRServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return store.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => store.set(name, value, options))
+          } catch {
+            /* called from a Server Component — ignore; middleware keeps the cookie fresh */
+          }
+        },
+      },
+    },
+  )
 }
 
 /**

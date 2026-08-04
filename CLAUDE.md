@@ -1,10 +1,16 @@
 # VitaTrack — project notes for Claude
 
-## Git / deploy workflow (set by SALVATOR_ORBIS, 2026-08-01)
-- Commit **everything to `main`** and push. `main` is the Vercel Production branch, so
-  pushing to `main` deploys the live site. Do this going forward — don't leave work on
-  feature branches unless explicitly asked.
-- When finishing a change, commit to `main` and push `origin main`.
+## Git / deploy workflow (updated 2026-08-04 — R8 staging gate)
+- **`develop` → Vercel Preview, `main` → Vercel Production.** Do day-to-day work on
+  `develop` (or a short-lived feature branch merged into `develop`); this deploys to a
+  Preview environment, not to live PHI users.
+- **`main` deploys to production and is protected.** Promote to prod only by merging
+  `develop` → `main` via a reviewed PR with CI green (type-check, lint, tests, RLS pgTAP,
+  build). Never commit straight to `main`.
+- GitHub branch protection on `main` (require PR + passing CI) must be enabled in repo
+  settings — that's a GitHub-side toggle, not a file in the repo.
+- _Superseded (was: "commit everything to `main`"): retired by R8 because every push shipped
+  straight to production users holding PHI, with no preview/QA buffer._
 
 ## Product principle — web/mobile parity (set by SALVATOR_ORBIS, 2026-08-01)
 - **The web app must do everything the mobile app can do.** Treat the mobile app's

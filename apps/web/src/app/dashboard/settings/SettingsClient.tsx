@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import { clearOfflineData } from '@/lib/pwa'
 
 interface Profile {
   full_name: string | null
@@ -94,6 +95,7 @@ export default function SettingsClient({ profile, email, userId }: Props) {
   const handleDeleteAccount = async () => {
     setIsDeletingAccount(true)
     await supabase.functions.invoke('request-deletion', {})
+    await clearOfflineData()
     await supabase.auth.signOut()
     router.push('/?deleted=1')
   }
