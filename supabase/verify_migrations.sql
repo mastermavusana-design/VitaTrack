@@ -41,7 +41,46 @@ WITH checks(sort, check_name, pass) AS (
     (13, 'DM  get_overdue_doses_for_caregiver() exists',
          to_regprocedure('public.get_overdue_doses_for_caregiver(timestamptz)') IS NOT NULL),
     (14, 'DM  coverage index idx_dose_logs_med_status_sched',
-         to_regclass('public.idx_dose_logs_med_status_sched') IS NOT NULL)
+         to_regclass('public.idx_dose_logs_med_status_sched') IS NOT NULL),
+    -- Camera capture / provenance (20240727)
+    (15, 'CC  scan_captures table exists',
+         to_regclass('public.scan_captures') IS NOT NULL),
+    (16, 'CC  lab_results table exists',
+         to_regclass('public.lab_results') IS NOT NULL),
+    (17, 'CC  qr_issuer_keys table exists',
+         to_regclass('public.qr_issuer_keys') IS NOT NULL),
+    (18, 'CC  vitals has source + capture_id',
+         (SELECT count(*) = 2 FROM information_schema.columns
+            WHERE table_name = 'vitals'
+              AND column_name IN ('source','capture_id'))),
+    (19, 'CC  health_documents has source + capture_id',
+         (SELECT count(*) = 2 FROM information_schema.columns
+            WHERE table_name = 'health_documents'
+              AND column_name IN ('source','capture_id'))),
+    -- Child health record (20240728)
+    (20, 'CH  dependants table exists',
+         to_regclass('public.dependants') IS NOT NULL),
+    (21, 'CH  vaccine_schedule table exists',
+         to_regclass('public.vaccine_schedule') IS NOT NULL),
+    (22, 'CH  vaccine_schedule seeded EPI-SA-2024.1 (18 doses)',
+         (SELECT count(*) = 18 FROM vaccine_schedule
+            WHERE schedule_ver = 'EPI-SA-2024.1')),
+    (23, 'CH  immunisations table exists',
+         to_regclass('public.immunisations') IS NOT NULL),
+    (24, 'CH  growth_measurements table exists',
+         to_regclass('public.growth_measurements') IS NOT NULL),
+    (25, 'CH  milestones table exists',
+         to_regclass('public.milestones') IS NOT NULL),
+    (26, 'CH  expand_immunisation_schedule() exists',
+         to_regprocedure('public.expand_immunisation_schedule(uuid,text)') IS NOT NULL),
+    (27, 'CH  health_documents.category allows immunization',
+         EXISTS (SELECT 1 FROM pg_constraint
+                   WHERE conname = 'documents_category_check'
+                     AND pg_get_constraintdef(oid) LIKE '%immunization%')),
+    -- Vitals updated_at for sync (20240801)
+    (28, 'VU  vitals has updated_at column',
+         EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'vitals' AND column_name = 'updated_at'))
 )
 SELECT check_name,
        CASE WHEN pass THEN 'PASS' ELSE '❌ FAIL' END AS result
