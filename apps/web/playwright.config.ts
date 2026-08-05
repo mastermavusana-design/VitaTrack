@@ -1,4 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
+import dotenv from 'dotenv'
+import path from 'path'
+
+// Load QA_* creds from apps/web/.env.local (gitignored) so `pnpm e2e` works
+// without exporting env by hand. Run scripts/qa-seed-accounts.mjs to populate it.
+dotenv.config({ path: path.resolve(__dirname, '.env.local') })
 
 /**
  * R1 client-direct QA — Playwright E2E (automated slice of R1_RUNTIME_QA.md).

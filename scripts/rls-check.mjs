@@ -14,8 +14,18 @@
  * Run:  node scripts/rls-check.mjs
  */
 
-const URL = requireEnv('SUPABASE_URL').replace(/\/$/, '')
-const ANON = requireEnv('SUPABASE_ANON_KEY')
+import dotenv from 'dotenv'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// Auto-load QA_* + SUPABASE_* from apps/web/.env.local (gitignored) so the check
+// runs without exporting env by hand. Run scripts/qa-seed-accounts.mjs first.
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.resolve(__dirname, '../apps/web/.env.local') })
+
+// Accept the SUPABASE_* names or fall back to the NEXT_PUBLIC_* ones in .env.local.
+const URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || requireEnv('SUPABASE_URL')).replace(/\/$/, '')
+const ANON = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || requireEnv('SUPABASE_ANON_KEY')
 const A = { email: requireEnv('QA_A_EMAIL'), password: requireEnv('QA_A_PASSWORD') }
 const B = { email: requireEnv('QA_B_EMAIL'), password: requireEnv('QA_B_PASSWORD') }
 

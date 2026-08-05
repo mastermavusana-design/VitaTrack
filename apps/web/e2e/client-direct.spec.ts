@@ -22,7 +22,13 @@ const DASHBOARD_PAGES = [
   '/dashboard/caregivers',
 ]
 
-/** Run `action`, assert it produced a POST to rest/v1/<restTable> and none to /api/<apiPath>. */
+/**
+ * Run `action`, then assert it produced a POST to rest/v1/<restTable> that the
+ * server actually ACCEPTED (2xx) — not just that a request was sent — and that
+ * nothing touched /api/<apiPath>. Asserting the response status is what proves
+ * residency AND persistence; a routed-but-rejected write (e.g. 401/403) would
+ * otherwise pass silently.
+ */
 async function expectClientDirectWrite(
   page: Page,
   restTable: string,
@@ -34,13 +40,19 @@ async function expectClientDirectWrite(
     if (r.url().includes(`/api/${apiPath}`)) apiHits.push(`${r.method()} ${r.url()}`)
   }
   page.on('request', onReq)
-  const restPost = page.waitForRequest(
-    (r) => r.method() === 'POST' && r.url().includes(`/rest/v1/${restTable}`),
+  const restResp = page.waitForResponse(
+    (r) => r.request().method() === 'POST' && r.url().includes(`/rest/v1/${restTable}`),
     { timeout: 20_000 },
   )
   await action()
-  await restPost
+  const resp = await restResp
   page.off('request', onReq)
+
+  const status = resp.status()
+  if (status < 200 || status >= 300) {
+    const body = await resp.text().catch(() => '(no body)')
+    throw new Error(`rest/v1/${restTable} write was rejected: HTTP ${status} — ${body}`)
+  }
   expect(apiHits, `${restTable} write must not touch /api/${apiPath}`).toEqual([])
 }
 

@@ -12,7 +12,9 @@ setup('authenticate as User A', async ({ page }) => {
   await page.goto('/login')
   await page.locator('input[type=email]').fill(email)
   await page.locator('input[type=password]').fill(password)
-  await page.getByRole('button', { name: 'Sign In' }).click()
+  // The login page has a "Sign In" tab toggle (type=button) as well as the form's
+  // submit button — scope to the submit inside the form to avoid a strict-mode clash.
+  await page.locator('form').getByRole('button', { name: 'Sign In' }).click()
 
   await page.waitForURL('**/dashboard**', { timeout: 30_000 })
   await page.context().storageState({ path: authFile })
