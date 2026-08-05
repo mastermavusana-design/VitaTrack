@@ -8,15 +8,20 @@ anywhere shared. Companion to `R1_BUILD_PLAN.md` §6/§7. Budget ~45–60 min._
 and read-cache behave, that RLS blocks cross-tenant access, and that caregiver roles are enforced.
 
 Automated logic tests (queue/replay/idempotency/cache) already pass via
-`pnpm --filter @vitatrack/web test`. This script covers what those can't: real RLS, real offline,
-real cross-origin routing.
+`pnpm --filter @vitatrack/web test`. Parts **1–3** (routing + reads + writes, now also asserting each
+write is accepted with a 2xx) and Part **6** (RLS) are additionally automated — see
+`docs/qa-automation.md` (Playwright E2E + `scripts/rls-check.mjs`). This manual script still covers
+what those can't: real offline toggle + IndexedDB (Part 4/5), camera scan (Part 8), the sign-out
+purge check (Part 9), and caregiver-role UI (Part 7).
 
 ---
 
 ## 0. Setup
 
 ### 0.1 Accounts
-You need **two** accounts on the same hosted Supabase project:
+You need **two** accounts on the same hosted Supabase project. The fastest way to create both is
+`node scripts/qa-seed-accounts.mjs` (see `docs/qa-automation.md`), which also writes their creds into
+`apps/web/.env.local` for the automated harnesses. To set them up by hand instead:
 
 - **User A** — the owner. Seed some data (a couple of vitals, 1–2 meds, a visit) either before the
   run or during Part 2.
