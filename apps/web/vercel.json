@@ -7,8 +7,5 @@
   "outputDirectory": ".next",
   "github": {
     "silent": true
-  },
-  "crons": [
-    { "path": "/api/cron/reminders", "schedule": "*/5 * * * *" }
-  ]
+  }
 }
