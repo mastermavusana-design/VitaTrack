@@ -2,6 +2,9 @@
 
 /** Web Push client helpers — service-worker registration + subscription. */
 
+import { createClientComponentClient } from '@/lib/supabaseClient'
+import { CLIENT_DIRECT, queuedUpsert, queuedDelete, currentUserId } from '@/lib/dataStore'
+
 export function pushSupported(): boolean {
   return typeof window !== 'undefined'
     && 'serviceWorker' in navigator
@@ -51,6 +54,24 @@ export async function enablePush(vapidPublicKey: string): Promise<{ ok: boolean;
     })
   }
 
+  // ── R1 client-direct path (flagged; push_tokens upsert under own-CRUD RLS). ──
+  if (CLIENT_DIRECT) {
+    const uid = await currentUserId()
+    if (!uid) return { ok: false, error: 'Your session expired — please sign in again.' }
+    const j = sub.toJSON() as { endpoint?: string; keys?: Record<string, string> }
+    const token = JSON.stringify({ endpoint: j.endpoint, keys: j.keys })
+    const res = await queuedUpsert('push_tokens', {
+      profile_id:   uid,
+      token,
+      platform:     'web',
+      device_name:  navigator.userAgent.slice(0, 120),
+      is_active:    true,
+      last_used_at: new Date().toISOString(),
+    }, 'token')
+    if (!res.ok) return { ok: false, error: res.error }
+    return { ok: true }
+  }
+
   const res = await fetch('/api/push/subscribe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -68,6 +89,27 @@ export async function disablePush(): Promise<void> {
   const reg = await navigator.serviceWorker.getRegistration()
   const sub = await reg?.pushManager.getSubscription()
   if (sub) {
+    // ── R1 client-direct path (flagged; find this endpoint's row + delete under RLS). ──
+    if (CLIENT_DIRECT) {
+      try {
+        const supabase = createClientComponentClient()
+        const uid = (await supabase.auth.getSession()).data.session?.user.id
+        if (uid) {
+          const { data: rows } = await supabase
+            .from('push_tokens')
+            .select('id, token')
+            .eq('profile_id', uid)
+            .eq('platform', 'web')
+          const match = (rows ?? []).find((r: any) => {
+            try { return JSON.parse(r.token)?.endpoint === sub.endpoint } catch { return false }
+          })
+          if (match) await queuedDelete('push_tokens', { id: (match as any).id })
+        }
+      } catch { /* best-effort; still unsubscribe locally below */ }
+      await sub.unsubscribe().catch(() => {})
+      return
+    }
+
     await fetch('/api/push/unsubscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

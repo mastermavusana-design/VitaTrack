@@ -1,0 +1,98 @@
+name: QA — R1 runtime (manual)
+
+# Manual-only runtime QA (the automatable slice of R1_RUNTIME_QA.md):
+#   • Playwright E2E — every PHI read/write goes client-direct to rest/v1 and is
+#     accepted (2xx), never to /api/*  (Parts 1–3)
+#   • REST RLS check — cross-tenant isolation + anon-ICE-via-RPC  (Part 6)
+#
+# Not on push/PR: it needs live test creds + a running flag-on target, so it is
+# gated behind workflow_dispatch. Populate the repository secrets listed below,
+# then run it from the Actions tab (pick the branch, optionally override the URL).
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   QA_BASE_URL        a flag-on (NEXT_PUBLIC_CLIENT_DIRECT=1) Preview URL, e.g. https://<preview>.vercel.app
+#   QA_EMAIL           User A email (drives the UI)
+#   QA_PASSWORD        User A password
+#   SUPABASE_URL       https://<ref>.supabase.co
+#   SUPABASE_ANON_KEY  the public anon key
+#   QA_A_EMAIL         User A email   (usually == QA_EMAIL)
+#   QA_A_PASSWORD      User A password
+#   QA_B_EMAIL         User B email   (unrelated — NOT a caregiver of A)
+#   QA_B_PASSWORD      User B password
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Flag-on target URL (overrides the QA_BASE_URL secret). Must have NEXT_PUBLIC_CLIENT_DIRECT=1.'
+        required: false
+        type: string
+
+concurrency:
+  group: qa-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PNPM_VERSION: 9
+
+jobs:
+  runtime-qa:
+    name: E2E + RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm --filter @vitatrack/web exec playwright install --with-deps chromium
+
+      - name: Resolve target URL
+        id: target
+        run: |
+          URL="${{ github.event.inputs.base_url || secrets.QA_BASE_URL }}"
+          if [ -z "$URL" ]; then
+            echo "::error::No target URL — set the QA_BASE_URL secret or pass the base_url input."
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Target: $URL"
+
+      - name: Playwright E2E (routing / reads / writes)
+        run: pnpm --filter @vitatrack/web e2e
+        env:
+          QA_BASE_URL: ${{ steps.target.outputs.url }}
+          QA_EMAIL: ${{ secrets.QA_EMAIL }}
+          QA_PASSWORD: ${{ secrets.QA_PASSWORD }}
+
+      - name: REST RLS check (cross-tenant + anon ICE)
+        run: node scripts/rls-check.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          QA_A_EMAIL: ${{ secrets.QA_A_EMAIL }}
+          QA_A_PASSWORD: ${{ secrets.QA_A_PASSWORD }}
+          QA_B_EMAIL: ${{ secrets.QA_B_EMAIL }}
+          QA_B_PASSWORD: ${{ secrets.QA_B_PASSWORD }}
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7
+          if-no-files-found: ignore

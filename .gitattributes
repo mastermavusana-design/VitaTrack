@@ -1,0 +1,28 @@
+# Normalize all text files to LF in the repository.
+# Working-tree checkout uses LF too, so Windows CRLF churn stops.
+* text=auto eol=lf
+
+# Windows-only scripts must stay CRLF.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binary assets — never touch line endings.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.svg  text eol=lf
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.eot  binary
+*.pdf  binary
+*.zip  binary
+*.keystore binary
+
+# Lockfiles are text, keep LF.
+pnpm-lock.yaml text eol=lf

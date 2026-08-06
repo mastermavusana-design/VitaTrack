@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase'
-import DashboardNav from '@/components/DashboardNav'
+import DashboardShell from '@/components/layout/DashboardShell'
 import InAppReminders from '@/components/reminders/InAppReminders'
 import AppLockProvider from '@/components/lock/AppLockProvider'
 import PwaBootstrap from '@/components/pwa/PwaBootstrap'
@@ -32,19 +32,15 @@ export default async function DashboardLayout({
 
   return (
     <AppLockProvider>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <DashboardNav
-          userEmail={user.email ?? ''}
-          userName={(profile as any)?.full_name ?? user.email ?? 'User'}
-          isCaregiver={!!membership}
-          ownerId={membership?.owner_id ?? user.id}
-        />
-        <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
-          {children}
-        </main>
-        <InAppReminders />
-        <PwaBootstrap />
-      </div>
+      <DashboardShell
+        userEmail={user.email ?? ''}
+        userName={(profile as any)?.full_name ?? user.email ?? 'User'}
+        isCaregiver={!!membership}
+      >
+        {children}
+      </DashboardShell>
+      <InAppReminders />
+      <PwaBootstrap />
     </AppLockProvider>
   )
 }

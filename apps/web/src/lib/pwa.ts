@@ -20,4 +20,10 @@ export async function clearOfflineData(): Promise<void> {
   } catch {
     /* ignore */
   }
+  try {
+    // R1 client-direct: write queue + read cache (PHI). Remove on sign-out.
+    indexedDB.deleteDatabase('vitatrack-clientq')
+  } catch {
+    /* ignore */
+  }
 }

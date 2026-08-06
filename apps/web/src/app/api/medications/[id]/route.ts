@@ -4,12 +4,14 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { retiredIfClientDirect } from '@/lib/apiRetired'
 import { captureException } from '@vitatrack/shared'
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const gone = retiredIfClientDirect(); if (gone) return gone
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
@@ -109,6 +111,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const gone = retiredIfClientDirect(); if (gone) return gone
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })

@@ -103,6 +103,28 @@ jobs:
           name: shared-coverage
           path: packages/shared/coverage/
 
+  # ─── Web unit tests (dataStore offline queue/replay/cache) ─────────────────
+  test-web:
+    name: Test — web data layer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run web unit tests
+        run: pnpm --filter @vitatrack/web test
+
   # ─── Next.js build check ───────────────────────────────────────────────────
   build-web:
     name: Build — Next.js web
@@ -174,4 +196,8 @@ jobs:
 
       - name: Validate migrations
         run: supabase db lint --schema public
+        working-directory: .
+
+      - name: RLS policy tests (pgTAP)
+        run: supabase test db
         working-directory: .

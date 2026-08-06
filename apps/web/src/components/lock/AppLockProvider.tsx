@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabaseClient'
 import {
   getConfig, markActive, shouldBeLocked, verifyPin, unlockWithPasskey,
   type AppLockConfig,

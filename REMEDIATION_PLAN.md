@@ -36,15 +36,15 @@ and share a single architectural fix, so they collapse together.
 |---|---|---|---|
 | R1 | Web backend runs in London (`lhr1`) while app claims `af-south-1` / POPIA residency | 🔴 Critical (approach set; RLS audit ✅) | L |
 | R2 | Server auth used `getSession()` (unverified) instead of `getUser()` | ✅ Done | M |
-| R3 | Deprecated `@supabase/auth-helpers-nextjs` — migrate to `@supabase/ssr` | 🟠 High | M |
+| R3 | Deprecated `@supabase/auth-helpers-nextjs` — migrate to `@supabase/ssr` | ✅ Code migrated (run `pnpm install` + verify auth flows) | M |
 | R4 | Two overlapping reminder systems (Vercel cron **and** Supabase Edge crons) | 🟠 High | M |
-| R5 | Sync bug: vitals pull on `created_at`; no conflict resolution | 🟠 High (filter ✅ / structural ⏳) | M–L |
+| R5 | Sync bug: vitals pull on `created_at`; no conflict resolution | 🟠 High (filter ✅ / structural: design ✅ in `R5_SYNC_DESIGN.md`, build device-first) | M–L |
 | R6 | Cloud OCR/Bedrock fallback reintroduces the residency problem | ✅ Done | S–M |
 | R7 | Repo hygiene — stale `_tmp_*` files (no git leak; see revised note) | ⚪ Low | S |
-| R8 | Everything commits straight to `main` = production; no staging gate | 🟡 Medium | S |
-| R9 | Test coverage limited to shared utils — no RLS or API-route tests | 🟡 Medium | M–L |
+| R8 | Everything commits straight to `main` = production; no staging gate | 🟡 Medium (workflow set ✅; enable branch protection) | S |
+| R9 | Test coverage limited to shared utils — no RLS or API-route tests | ✅ RLS pgTAP suite + CI (client-direct data-layer tests too) | M–L |
 | R10 | Vercel cron cadence (every 5 min) — cost + up-to-5-min reminder lag | ⚪ Low | S |
-| R11 | Third-party processors (Resend, Sentry) not residency-reviewed | ⚪ Low | S |
+| R11 | Third-party processors (Resend, Sentry) not residency-reviewed | 🟡 Register created (`docs/processor-register.md`); DPAs/scrubbing to confirm | S |
 | R12 | Web/mobile feature parity (product goal) | ✅ Done | L |
 
 > **Fast path:** R1, R2, R4 and R10 are all resolved by one move — pushing all

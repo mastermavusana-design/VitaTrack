@@ -11,7 +11,7 @@
 
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClientComponentClient } from '@/lib/supabaseClient'
 import {
   InMemoryKeyDirectory, makeVerifier, verifyReadingQR, parseReadingQR, qrToExtraction,
   type Ed25519VerifyPrimitive, type IssuerKey, type VerifyFn, type ExtractionResult,
