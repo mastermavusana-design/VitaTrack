@@ -187,7 +187,7 @@ export default function DashboardShell({ userEmail, userName, isCaregiver, child
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#E8ECF2] dark:bg-[#0B1220]">
       {/* ── Desktop sidebar (fixed, collapsible) ── */}
       <aside
         className={`hidden md:flex fixed inset-y-0 left-0 z-30 flex-col bg-white border-r border-gray-200 shadow-rail transition-[width] duration-300 ease-in-out ${

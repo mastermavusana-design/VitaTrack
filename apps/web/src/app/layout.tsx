@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
-      <body className="bg-gray-50 text-gray-900 antialiased" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <body className="bg-[#E8ECF2] dark:bg-[#0B1220] text-gray-900 antialiased" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
         {children}
       </body>
     </html>
