@@ -12,7 +12,9 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code       = requestUrl.searchParams.get('code')
-  const returnTo   = requestUrl.searchParams.get('next') ?? '/dashboard'
+  const returnTo   = requestUrl.searchParams.get('returnTo')
+                  ?? requestUrl.searchParams.get('next')
+                  ?? '/dashboard'
 
   if (code) {
     const supabase = createServerClient()

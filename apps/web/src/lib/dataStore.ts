@@ -51,7 +51,14 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true })
       if (!db.objectStoreNames.contains(READ_STORE)) db.createObjectStore(READ_STORE, { keyPath: 'key' })
     }
-    open.onsuccess = () => resolve(open.result)
+    open.onsuccess = () => {
+      const db = open.result
+      // Yield to a deleteDatabase() from another context (e.g. sign-out purge in
+      // pwa.clearOfflineData). Without this, this long-lived connection blocks the
+      // delete and PHI can survive sign-out until GC happens to close it.
+      db.onversionchange = () => db.close()
+      resolve(db)
+    }
     open.onerror = () => reject(open.error)
   })
 }

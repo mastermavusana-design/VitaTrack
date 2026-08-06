@@ -9,10 +9,25 @@ Automated slice of `R1_RUNTIME_QA.md`. Two harnesses, both **env-driven** (no se
 2. **REST RLS check** (`scripts/rls-check.mjs`) — two real accounts + the anon key, proving RLS
    blocks cross-tenant read/write and that anon can only reach ICE via the RPC.
 
-Together these cover QA Parts 1–3 (routing + reads + writes) and Part 6 (RLS). Offline queue/replay
-is already covered by the unit suite (`pnpm --filter @vitatrack/web test`). Still **manual**: the
-offline-in-browser toggle + IndexedDB inspection (Part 4/5), camera scan (Part 8), and sign-out
-purge visual check (Part 9).
+Together these cover QA Parts 1–3 (routing + reads + writes), Part 6 (RLS), and — via real-browser
+IndexedDB + `context.setOffline()` in the same E2E spec — Part 4 (offline queue→replay with a
+no-duplicate check), the *data half* of Part 5 (an online visit populates the offline read cache),
+and Part 9 (sign-out deletes the `vitatrack-clientq` DB and leaves no cached PHI). Offline
+queue/replay *logic* is additionally covered by the unit suite (`pnpm --filter @vitatrack/web test`)
+against an in-memory IDB + Supabase stub; the E2E versions exercise the real browser DB and caches
+the unit suite can't.
+
+Still **manual**:
+- **Part 5 rendered offline page + banner.** All dashboard navigation is a full-document `<a>` load,
+  so reaching a dashboard page offline depends entirely on the service worker serving the cached
+  document on reload — which we can't reliably drive in a fresh headless context. Manual check
+  (warm browser): visit `/dashboard/medications`, then DevTools → Network → **Offline**, and reload.
+  Expect the page to render from cache with the amber "Showing saved data — you appear to be offline."
+  banner. If it instead shows the "You're offline" page, offline read access is broken (a real bug,
+  not a test artifact) — the SW nav fallback (`ignoreVary`) and the `waitUntil`-guarded cache write
+  are the two fixes already in `public/sw.js`; re-verify after deploying them.
+- **Camera scan (Part 8).** The QR branch is automatable but needs a seeded test issuer keypair +
+  fake-video device; the OCR branch is too flaky to gate CI.
 
 ## Prerequisites
 

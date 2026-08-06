@@ -18,11 +18,21 @@
   body {
     min-height: 100vh;
   }
+
+  /* Smooth the light/dark transition on the big surfaces. */
+  body,
+  .card {
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+  }
 }
 
 @layer components {
   .card {
-    @apply bg-white rounded-2xl border border-gray-200 shadow-sm;
+    @apply bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-card;
+  }
+
+  .card-hover {
+    @apply transition-shadow duration-200 hover:shadow-card-hover;
   }
 
   .badge {
@@ -34,12 +44,64 @@
   }
 
   .btn-secondary {
-    @apply bg-brand-50 hover:bg-brand-100 text-brand-900 font-semibold rounded-xl px-5 py-2.5 transition-colors;
+    @apply bg-brand-50 dark:bg-slate-800 hover:bg-brand-100 dark:hover:bg-slate-700 text-brand-900 dark:text-brand-200 font-semibold rounded-xl px-5 py-2.5 transition-colors;
   }
 
   .input {
-    @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900
-           placeholder:text-gray-400 focus:border-brand-900 focus:outline-none focus:ring-2
-           focus:ring-brand-900/10 transition-colors;
+    @apply w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800
+           px-4 py-2.5 text-sm text-gray-900 dark:text-slate-100
+           placeholder:text-gray-400 dark:placeholder:text-slate-500
+           focus:border-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-900/10 transition-colors;
   }
 }
+
+/*
+ * App-wide dark theme.
+ * These unlayered rules remap the most common Tailwind gray utilities under
+ * `.dark`, so every page (including ones not individually restyled) reads
+ * coherently in dark mode. Unlayered CSS wins over Tailwind's layered
+ * utilities, so no !important is needed. Components that opt in with explicit
+ * `dark:` variants still take precedence where authored.
+ */
+.dark body {
+  background-color: #0B1220;
+  color: #E2E8F0;
+}
+
+.dark .bg-white { background-color: #0F172A; }
+.dark .bg-gray-50 { background-color: #0B1220; }
+.dark .bg-gray-100 { background-color: #1E293B; }
+.dark .bg-gray-200 { background-color: #334155; }
+
+.dark .text-gray-900 { color: #F1F5F9; }
+.dark .text-gray-800 { color: #E2E8F0; }
+.dark .text-gray-700 { color: #CBD5E1; }
+.dark .text-gray-600 { color: #94A3B8; }
+.dark .text-gray-500 { color: #94A3B8; }
+.dark .text-gray-400 { color: #64748B; }
+.dark .text-gray-300 { color: #475569; }
+
+.dark .border-gray-100 { border-color: #1E293B; }
+.dark .border-gray-200 { border-color: #1E293B; }
+.dark .border-gray-300 { border-color: #334155; }
+
+.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]) { border-color: #1E293B; }
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1E293B; }
+
+.dark .hover\:bg-gray-50:hover { background-color: #1E293B; }
+.dark .hover\:bg-gray-100:hover { background-color: #1E293B; }
+
+/* Keep soft tinted alert/status panels legible on dark. */
+.dark .bg-amber-50 { background-color: #3B2F0B; }
+.dark .bg-amber-50.border-amber-300 { border-color: #92620E; }
+.dark .bg-red-50 { background-color: #3B1215; }
+.dark .bg-green-50 { background-color: #0C2A1E; }
+.dark .bg-blue-50 { background-color: #0E2748; }
+
+/* Thin, theme-aware scrollbars for the shell. */
+.vt-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.dark .vt-scroll { scrollbar-color: #334155 transparent; }
+.vt-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.vt-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+.dark .vt-scroll::-webkit-scrollbar-thumb { background: #334155; }
+.vt-scroll::-webkit-scrollbar-track { background: transparent; }

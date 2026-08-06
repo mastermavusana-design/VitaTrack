@@ -54,10 +54,22 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          caches.open(RUNTIME_CACHE).then((c) => c.put(req, res.clone()))
+          // Keep the SW alive until the cache write completes. A bare
+          // fire-and-forget put can be aborted when the worker is terminated
+          // right after the response is delivered, leaving the page uncached
+          // (and thus unavailable on a later offline reload).
+          const copy = res.clone()
+          event.waitUntil(caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy)))
           return res
         })
-        .catch(async () => (await caches.match(req)) || (await caches.match(OFFLINE_URL))),
+        // ignoreVary: Next.js documents carry `Vary: RSC, Next-Router-*`, so a
+        // plain offline reload would otherwise miss the cached page and fall
+        // through to the offline screen — breaking "visited pages work offline".
+        .catch(
+          async () =>
+            (await caches.match(req, { ignoreVary: true, ignoreSearch: true })) ||
+            (await caches.match(OFFLINE_URL)),
+        ),
     )
     return
   }
