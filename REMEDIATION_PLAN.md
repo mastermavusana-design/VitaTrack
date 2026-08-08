@@ -41,11 +41,12 @@ and share a single architectural fix, so they collapse together.
 | R5 | Sync bug: vitals pull on `created_at`; no conflict resolution | 🟠 High (filter ✅ / structural: design ✅ in `R5_SYNC_DESIGN.md`, build device-first) | M–L |
 | R6 | Cloud OCR/Bedrock fallback reintroduces the residency problem | ✅ Done | S–M |
 | R7 | Repo hygiene — stale `_tmp_*` files (no git leak; see revised note) | ⚪ Low | S |
-| R8 | Everything commits straight to `main` = production; no staging gate | 🟡 Medium (workflow set ✅; enable branch protection) | S |
+| R8 | Everything commits straight to `main` = production; no staging gate | 🟠 High (workflow set ✅; **branch protection NOT enabled — verified 2026-08-08**) | S |
 | R9 | Test coverage limited to shared utils — no RLS or API-route tests | ✅ RLS pgTAP suite + CI (client-direct data-layer tests too) | M–L |
 | R10 | Vercel cron cadence (every 5 min) — cost + up-to-5-min reminder lag | ⚪ Low | S |
 | R11 | Third-party processors (Resend, Sentry) not residency-reviewed | 🟡 Register created (`docs/processor-register.md`); DPAs/scrubbing to confirm | S |
 | R12 | Web/mobile feature parity (product goal) | ✅ Done | L |
+| R13 | Web `next build` crashes in CI (React 18/19 duplicate under hoisted node_modules) | 🟡 Medium (non-blocked; real fix open) | M |
 
 > **Fast path:** R1, R2, R4 and R10 are all resolved by one move — pushing all
 > PHI-touching server logic and crons into Supabase Edge Functions in `af-south-1`
@@ -227,7 +228,7 @@ Remove-Item _tmp_8_*
 
 ---
 
-## R8 — No staging gate for a health app 🟡 Medium · S
+## R8 — No staging gate for a health app 🟠 High · S
 
 **What.** Per `CLAUDE.md`, all work commits straight to `main`, and `main` is the Vercel
 production branch. CI already references a `develop` branch that isn't used as a gate.
@@ -237,7 +238,26 @@ production branch. CI already references a `develop` branch that isn't used as a
 **Fix.** Adopt `develop` → Vercel Preview, `main` → Production. Require CI green + review to
 merge to `main`. Update `CLAUDE.md`.
 
-**Acceptance.** Production deploys only from reviewed `main` merges.
+**Progress.**
+- ✅ **Workflow adopted (2026-08-04).** `CLAUDE.md` now documents `develop` → Preview,
+  `main` → Production, promote only via reviewed PR with CI green.
+- ✅ **Practiced (2026-08-08).** The specialty-dropdown + CI-fix release went to production the
+  right way: `develop` → `main` via reviewed PR #5, not a direct push.
+- 🔴 **Still open — the gate is NOT enforced.** Verified 2026-08-08 in repo Settings: `main`
+  has **no classic branch protection rule and no ruleset**. Nothing on GitHub requires a PR,
+  a review, or passing CI to reach `main` — anyone (or any tooling) can push straight to
+  production PHI. The workflow is currently convention-only. Raised from Medium to High:
+  for a PHI app this is the actual safety control, and right now it is off.
+
+**Fix (remaining, GitHub-side — repo Settings → Branches or Rulesets).** Add a branch
+protection rule / ruleset on `main` that: requires a pull request before merging, requires
+at least one approving review, and requires the CI status checks to pass. Do **not** mark
+`Build — Next.js web` as a required check until R13 is resolved (it is intentionally
+non-blocking — see R13); require the green jobs (Type check, Lint, tests, migration lint,
+Expo type export) instead.
+
+**Acceptance.** Production deploys only from reviewed `main` merges, **and** GitHub enforces
+it (a direct push to `main` and a merge with failing required checks are both rejected).
 
 ---
 
@@ -339,14 +359,66 @@ lacks WebCrypto Ed25519, verification fails closed to the existing "unverified, 
 
 ---
 
+## R13 — Web `next build` crashes in CI under the hoisted monorepo 🟡 Medium · M
+
+**What.** The CI job `Build — Next.js web` (`pnpm --filter @vitatrack/web build`) fails during
+`next build` static generation with `TypeError: Cannot read properties of null (reading
+'useContext')`. It compiles and type-checks cleanly, then crashes while prerendering pages.
+
+**Root cause.** The monorepo mixes React majors — web is React 18 (Next 14.2.3 only supports 18),
+mobile is React 19 (Expo 54) — under `node-linker=hoisted` (set in root `.npmrc`; required so
+Expo/React-Native path lengths don't blow Windows' `MAX_PATH`). In the flat `node_modules`,
+React 19 sits at the root and leaks into the web build, so the app renders with two different
+React copies and internals resolve to `null`. This is a **pre-existing latent issue**, not caused
+by any recent feature: `build-web` `needs: [typecheck, lint]`, and lint had been failing for many
+commits, so the job was always *skipped* and never actually ran. Once the shared-package lint
+directive was fixed (2026-08-08) the job ran for the first time and exposed this.
+
+**Not the app.** Vercel builds and deploys the same commits green because it builds the web app in
+isolation (no mobile React 19 in its tree). Vercel is the authoritative web build. The web
+dependency graph itself is consistent — `recharts`, `@tanstack/react-query`, and the app all bind
+`react@18.3.1`/`react-dom@18.3.1` in the lockfile; the problem is physical hoisting at build time,
+not logical resolution.
+
+**Current state (2026-08-08) — mitigated, not fixed.** `.github/workflows/ci.yml` marks the
+`build-web` job `continue-on-error: true` so it can't fail the CI run or gate `develop` → `main`.
+The check still shows red in the Actions UI (intentional — keeps the signal visible). A first
+attempt to fix it with a `next.config.js` webpack alias pinning React to the web app's own copies
+**regressed the Vercel build** (aliased `react`/`react-dom` to mismatched physical locations) and
+was reverted in commit `34d58fe`. Do not retry that approach blindly.
+
+**Fix (real, open).** Make the web build deterministically resolve a single React 18, verified by
+actually running `next build` (can't be validated from the static sandbox — needs a machine that
+can install + build). Candidate approaches, in rough order of preference:
+1. A correct webpack/Turbopack resolution pin that points **both** `react` and `react-dom` at the
+   *same* physically-present React 18 directory (the earlier attempt split them). Verify against a
+   real build before shipping.
+2. `pnpm` dependency isolation for the web app (e.g. scoped overrides / a `.npmrc`
+   `public-hoist-pattern` tuned so React 18 wins inside `apps/web`) — while preserving the
+   Expo/Windows path-length reason `node-linker=hoisted` exists.
+3. If neither lands cleanly, formally treat Vercel as the web-build gate and retire the redundant
+   in-CI `build-web` job rather than leaving a permanently-red check.
+
+**Interaction with R8.** Until this is fixed, `Build — Next.js web` must **not** be a required
+status check in `main` branch protection (see R8), or it will block every promotion.
+
+**Acceptance.** `pnpm --filter @vitatrack/web build` completes in CI (fresh monorepo install), the
+`continue-on-error` shim is removed, and the check is green — or the job is intentionally retired in
+favour of Vercel with that decision recorded here.
+
+---
+
 ## Suggested sequencing
 
 1. **Sprint 1 (compliance core):** R1 + R4 + R2 + R3 + R10 — one architectural thrust that
    moves PHI processing into `af-south-1`, modernizes auth, and unifies reminders.
 2. **Sprint 2 (data integrity):** R5 (sync), R9 (RLS tests), R6 (OCR decision).
-3. **Sprint 3 (hygiene/process):** R7, R8, R11.
+3. **Sprint 3 (hygiene/process):** R7, R8, R11, R13.
 
 Items R7 and R8 are S-effort and can be knocked out any time — they don't depend on the rest.
+**R8's remaining step (enabling branch protection on `main`) is now the highest-value quick win**
+— it's a few clicks in repo Settings and it's the control that actually keeps unreviewed code off
+production PHI. Pair it with R13: don't require the `Build — Next.js web` check until R13 is fixed.
 
 **R12 (parity)** runs as its own parallel track: start with notifications history + medication
 detail, and schedule the offline-PWA piece alongside the R1 thin-web-tier rework since both
