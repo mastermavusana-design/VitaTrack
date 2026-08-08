@@ -14,6 +14,37 @@ const VISIT_TYPES = [
   { value: 'other',      label: '🏥 Other' },
 ]
 
+// Common medical specialist fields for the Specialty dropdown.
+const SPECIALTIES = [
+  'General Practice',
+  'Allergology / Immunology',
+  'Anaesthesiology',
+  'Cardiology',
+  'Dermatology',
+  'Dietetics / Nutrition',
+  'Endocrinology',
+  'ENT (Otolaryngology)',
+  'Gastroenterology',
+  'General Surgery',
+  'Gynaecology / Obstetrics',
+  'Haematology',
+  'Nephrology',
+  'Neurology',
+  'Neurosurgery',
+  'Oncology',
+  'Ophthalmology',
+  'Orthopaedics',
+  'Paediatrics',
+  'Physiotherapy',
+  'Plastic / Reconstructive Surgery',
+  'Psychiatry',
+  'Psychology',
+  'Pulmonology',
+  'Radiology',
+  'Rheumatology',
+  'Urology',
+]
+
 export default function AddVisitButton() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -113,7 +144,24 @@ export default function AddVisitButton() {
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Specialty">
-            <input className="input" value={f.specialty ?? ''} onChange={e => set('specialty', e.target.value)} placeholder="e.g. Cardiology" />
+            <select
+              className="input"
+              value={SPECIALTIES.includes(f.specialty ?? '') ? (f.specialty ?? '') : (f.specialty ? '__other__' : '')}
+              onChange={e => set('specialty', e.target.value === '__other__' ? ' ' : e.target.value)}
+            >
+              <option value="">Select a specialty…</option>
+              {SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
+              <option value="__other__">Other (specify)…</option>
+            </select>
+            {(f.specialty ?? '') !== '' && !SPECIALTIES.includes(f.specialty ?? '') && (
+              <input
+                className="input mt-2"
+                value={(f.specialty ?? '').trim()}
+                onChange={e => set('specialty', e.target.value)}
+                placeholder="Enter specialty"
+                autoFocus
+              />
+            )}
           </Field>
           <Field label="Facility">
             <input className="input" value={f.facility ?? ''} onChange={e => set('facility', e.target.value)} placeholder="e.g. Netcare" />

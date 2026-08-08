@@ -3,7 +3,8 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 // ─── Types (inline until supabase gen types is run) ──────────
 // After setup run: supabase gen types typescript --project-id <id> > database.types.ts
 // Then replace `any` below with the generated Database type.
-type Database = any // eslint-disable-line @typescript-eslint/no-explicit-any
+// Placeholder until `supabase gen types` generates the real Database type (see note above).
+type Database = any
 
 let _client: SupabaseClient<Database> | null = null
 
