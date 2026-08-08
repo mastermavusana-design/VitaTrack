@@ -14,9 +14,15 @@
  */
 import * as SecureStore from 'expo-secure-store'
 import { Q } from '@nozbe/watermelondb'
-import { database, vitalsCollection, medicationsCollection, doseLogsCollection, doctorVisitsCollection } from './database'
+import {
+  database, vitalsCollection, medicationsCollection, doseLogsCollection, doctorVisitsCollection,
+  dependantsCollection, immunisationsCollection, growthMeasurementsCollection, milestonesCollection,
+} from './database'
 import { getSupabaseClient, captureException } from '@vitatrack/shared'
-import type { VitalModel, MedicationModel, DoseLogModel, DoctorVisitModel } from './models'
+import type {
+  VitalModel, MedicationModel, DoseLogModel, DoctorVisitModel,
+  DependantModel, ImmunisationModel, GrowthMeasurementModel, MilestoneModel,
+} from './models'
 
 const SYNC_KEY = 'vitatrack_last_synced_at'
 const EPOCH    = '1970-01-01T00:00:00Z'
@@ -230,6 +236,108 @@ async function pullDoctorVisits(supabase: ReturnType<typeof getSupabaseClient>, 
   })
 }
 
+/* ─── Pull: Child Health Record (offline read mirror, Phase 5) ────────────── */
+// Dependants key off guardian_id; the child tables (immunisations, growth,
+// milestones) key off dependant_id. growth_measurements + milestones have no
+// updated_at column, so growth pulls incrementally by created_at and milestones
+// are pulled in full each sync (they're small per child and mutate in place).
+async function pullDependants(supabase: ReturnType<typeof getSupabaseClient>, since: string, profileId: string) {
+  const { data } = await supabase
+    .from('dependants')
+    .select('*')
+    .eq('guardian_id', profileId)
+    .gt('updated_at', since)
+
+  if (!data?.length) return
+
+  await database.write(async () => {
+    for (const row of data) {
+      const writeDep = (d: DependantModel) => {
+        d.serverId         = row.id
+        d.guardianId       = row.guardian_id
+        d.fullName         = row.full_name
+        d.dateOfBirth      = row.date_of_birth
+        d.sex              = row.sex
+        d.birthWeightG     = row.birth_weight_g
+        d.gestationalAgeWk = row.gestational_age_wk
+        d.relationship     = row.relationship
+        d.rthbNumber       = row.rthb_number
+        d.popiaConsent     = row.popia_consent ?? false
+        d.archivedAt       = row.archived_at
+        d.syncedAt         = Date.now()
+        d.isDeleted        = row.archived_at != null
+      }
+      const existing = await dependantsCollection.query(Q.where('server_id', row.id)).fetch()
+      if (existing.length > 0) await existing[0].update(writeDep)
+      else await dependantsCollection.create(writeDep)
+    }
+  })
+}
+
+async function pullChildTables(supabase: ReturnType<typeof getSupabaseClient>, since: string, profileId: string) {
+  // The guardian's dependant server ids (from the just-pulled local mirror).
+  const deps = await dependantsCollection.query(Q.where('guardian_id', profileId)).fetch()
+  const depIds = deps.map(d => d.serverId).filter((x): x is string => !!x)
+  if (depIds.length === 0) return
+
+  const [immRes, growthRes, mileRes] = await Promise.all([
+    supabase.from('immunisations').select('*').in('dependant_id', depIds).gt('updated_at', since),
+    supabase.from('growth_measurements').select('*').in('dependant_id', depIds).gt('created_at', since),
+    supabase.from('milestones').select('*').in('dependant_id', depIds), // full: no updated_at
+  ])
+
+  await database.write(async () => {
+    for (const row of immRes.data ?? []) {
+      const write = (m: ImmunisationModel) => {
+        m.serverId        = row.id
+        m.dependantId     = row.dependant_id
+        m.vaccineCode     = row.vaccine_code
+        m.vaccineName     = row.vaccine_name
+        m.doseLabel       = row.dose_label
+        m.status          = row.status
+        m.dueDate         = row.due_date
+        m.givenDate       = row.given_date
+        m.reminderEnabled = row.reminder_enabled ?? true
+        m.syncedAt        = Date.now()
+      }
+      const existing = await immunisationsCollection.query(Q.where('server_id', row.id)).fetch()
+      if (existing.length > 0) await existing[0].update(write)
+      else await immunisationsCollection.create(write)
+    }
+
+    for (const row of growthRes.data ?? []) {
+      const existing = await growthMeasurementsCollection.query(Q.where('server_id', row.id)).fetch()
+      if (existing.length) continue // insert-only; never updated server-side
+      await growthMeasurementsCollection.create((g: GrowthMeasurementModel) => {
+        g.serverId     = row.id
+        g.dependantId  = row.dependant_id
+        g.measuredAt   = row.measured_at
+        g.weightKg     = row.weight_kg
+        g.lengthCm     = row.length_cm
+        g.headCircCm   = row.head_circ_cm
+        g.muacCm       = row.muac_cm
+        g.syncedAt     = Date.now()
+      })
+    }
+
+    for (const row of mileRes.data ?? []) {
+      const write = (ms: MilestoneModel) => {
+        ms.serverId        = row.id
+        ms.dependantId     = row.dependant_id
+        ms.domain          = row.domain
+        ms.milestone       = row.milestone
+        ms.expectedAgeBand = row.expected_age_band
+        ms.status          = row.status
+        ms.achievedOn      = row.achieved_on
+        ms.syncedAt        = Date.now()
+      }
+      const existing = await milestonesCollection.query(Q.where('server_id', row.id)).fetch()
+      if (existing.length > 0) await existing[0].update(write)
+      else await milestonesCollection.create(write)
+    }
+  })
+}
+
 /* ─── Push: Local dirty rows → Supabase ──────────────────────────────────── */
 async function pushDirtyDoctorVisits(supabase: ReturnType<typeof getSupabaseClient>, profileId: string) {
   const dirty = await doctorVisitsCollection
@@ -369,7 +477,10 @@ export async function syncWithSupabase(): Promise<void> {
       pullMedications(supabase, since, profileId),
       pullDoseLogs(supabase, since, profileId),
       pullDoctorVisits(supabase, since, profileId),
+      pullDependants(supabase, since, profileId),
     ])
+    // Child tables key off dependant_id, so pull them after the dependant mirror.
+    await pullChildTables(supabase, since, profileId)
 
     await setLastSyncedAt(now)
     console.log(`[Sync] Complete. Last synced: ${now}`)

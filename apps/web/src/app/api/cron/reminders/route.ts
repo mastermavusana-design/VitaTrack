@@ -2,8 +2,9 @@
  * GET /api/cron/reminders — Web Push reminder sender (Vercel Cron, every 5 min).
  *
  * Computes due medication doses directly from medication_schedules in each
- * profile's timezone, plus a daily refill sweep at 07:00 local, and pushes to
- * every registered web subscription. Runs with the service role (all users).
+ * profile's timezone, plus a daily refill sweep at 07:00 local, an immunisation
+ * sweep at 08:00 local (doses due today / in a week), and pushes to every
+ * registered web subscription. Runs with the service role (all users).
  *
  * Auth: Vercel Cron sends `Authorization: Bearer $CRON_SECRET` when CRON_SECRET
  * is set. Requests without it are rejected.
@@ -37,6 +38,29 @@ function toMinute(hhmm: string): number | null {
   return Number(m[1]) * 60 + Number(m[2])
 }
 
+/** Local calendar date (YYYY-MM-DD) in a given IANA timezone. */
+function localDateInTz(now: Date, timeZone: string): string {
+  try {
+    // en-CA renders as YYYY-MM-DD.
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(now)
+  } catch {
+    return now.toISOString().slice(0, 10)
+  }
+}
+
+/** Whole days from ISO date a → b (b - a). */
+function daysBetween(aISO: string, bISO: string): number {
+  const a = Date.parse(aISO + 'T00:00:00Z')
+  const b = Date.parse(bISO + 'T00:00:00Z')
+  return Math.round((b - a) / 86_400_000)
+}
+
+// Immunisation reminders fire at ~08:00 local, for doses due today or N days out.
+const IMM_SWEEP_MIN = 480
+const IMM_LEAD_DAYS = [0, 7]
+
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET
   if (secret) {
@@ -66,10 +90,29 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const rows = (schedules ?? []).filter((s: any) => s.medication?.is_active && s.medication?.reminder_enabled !== false)
-  const profileIds = Array.from(new Set(rows.map((s: any) => s.profile_id)))
+  const medProfileIds = rows.map((s: any) => s.profile_id)
+
+  // Due, reminder-enabled immunisations within a generous date window (per-guardian
+  // timezone is applied per-row below). Joined to the child's guardian.
+  const winStart = new Date(now.getTime() - 2 * 86_400_000).toISOString().slice(0, 10)
+  const winEnd = new Date(now.getTime() + (Math.max(...IMM_LEAD_DAYS) + 2) * 86_400_000).toISOString().slice(0, 10)
+  const { data: immRows } = await supabase
+    .from('immunisations')
+    .select('id, vaccine_name, dose_label, due_date, dependant:dependants(guardian_id, full_name)')
+    .eq('status', 'due')
+    .eq('reminder_enabled', true)
+    .not('due_date', 'is', null)
+    .gte('due_date', winStart)
+    .lte('due_date', winEnd)
+
+  const guardianIds = (immRows ?? [])
+    .map((r: any) => r.dependant?.guardian_id)
+    .filter((x: any): x is string => !!x)
+
+  const profileIds = Array.from(new Set([...medProfileIds, ...guardianIds]))
   if (profileIds.length === 0) return NextResponse.json({ sent: 0, due: 0 })
 
-  // Timezones + web subscriptions for those profiles.
+  // Timezones + web subscriptions for every profile we might notify.
   const [{ data: profiles }, { data: tokens }] = await Promise.all([
     supabase.from('profiles').select('id, timezone').in('id', profileIds),
     supabase.from('push_tokens').select('id, profile_id, token').eq('platform', 'web').eq('is_active', true).in('profile_id', profileIds),
@@ -88,7 +131,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Build the set of notifications to send.
-  type Msg = { profileId: string; title: string; body: string; tag: string }
+  type Msg = { profileId: string; title: string; body: string; tag: string; url: string }
   const messages: Msg[] = []
   const refilledFor = new Set<string>()
 
@@ -104,7 +147,7 @@ export async function GET(req: NextRequest) {
       if (tMin == null) continue
       const delta = nowMin - tMin
       if (delta >= 0 && delta < WINDOW_MIN) {
-        messages.push({ profileId: s.profile_id, title: 'Time for your medication', body: `${label} — due at ${time}`, tag: `dose-${s.profile_id}-${time}` })
+        messages.push({ profileId: s.profile_id, title: 'Time for your medication', body: `${label} — due at ${time}`, tag: `dose-${s.profile_id}-${time}`, url: '/dashboard/medications' })
       }
     }
 
@@ -113,9 +156,34 @@ export async function GET(req: NextRequest) {
       const key = `${s.profile_id}-${med.name}`
       if (!refilledFor.has(key) && med.pill_count != null && med.refill_threshold != null && med.pill_count <= med.refill_threshold) {
         refilledFor.add(key)
-        messages.push({ profileId: s.profile_id, title: 'Refill soon', body: `${label}: ${med.pill_count} left`, tag: `refill-${key}` })
+        messages.push({ profileId: s.profile_id, title: 'Refill soon', body: `${label}: ${med.pill_count} left`, tag: `refill-${key}`, url: '/dashboard/medications' })
       }
     }
+  }
+
+  // Immunisation sweep at ~08:00 local: notify the guardian of doses due today or
+  // a week out. One message per (dose, lead-offset); the browser tag dedups.
+  for (const r of (immRows ?? []) as any[]) {
+    const guardianId = r.dependant?.guardian_id
+    if (!guardianId || !r.due_date) continue
+    const tz = tzOf.get(guardianId) ?? 'Africa/Johannesburg'
+    const nowMin = minuteOfDayInTz(now, tz)
+    if (nowMin < IMM_SWEEP_MIN || nowMin >= IMM_SWEEP_MIN + WINDOW_MIN) continue
+
+    const offset = daysBetween(localDateInTz(now, tz), r.due_date)
+    if (!IMM_LEAD_DAYS.includes(offset)) continue
+
+    const dose = r.dose_label ? ` (${r.dose_label})` : ''
+    const body = offset === 0
+      ? `${r.vaccine_name}${dose} is due today`
+      : `${r.vaccine_name}${dose} is due in ${offset} days`
+    messages.push({
+      profileId: guardianId,
+      title: 'Vaccination due',
+      body,
+      tag: `imm-${r.id}-${offset}`,
+      url: '/dashboard/children',
+    })
   }
 
   // Send.
@@ -123,7 +191,7 @@ export async function GET(req: NextRequest) {
   const staleTokenIds: string[] = []
   await Promise.all(messages.map(async (msg) => {
     const subs = subsOf.get(msg.profileId) ?? []
-    const payload = JSON.stringify({ title: msg.title, body: msg.body, tag: msg.tag, url: '/dashboard/medications' })
+    const payload = JSON.stringify({ title: msg.title, body: msg.body, tag: msg.tag, url: msg.url })
     await Promise.all(subs.map(async ({ id, sub }) => {
       try {
         await webpush.sendNotification(sub, payload)

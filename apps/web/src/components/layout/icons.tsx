@@ -33,6 +33,15 @@ export const VitalsIcon = (p: IconProps) => (
   </svg>
 )
 
+export const ChildIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="5.5" r="2.5" />
+    <path d="M12 8v7" />
+    <path d="M7.5 11.5 12 10l4.5 1.5" />
+    <path d="M9.5 21l2.5-6 2.5 6" />
+  </svg>
+)
+
 export const PillIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <rect x="3" y="8" width="18" height="8" rx="4" transform="rotate(-45 12 12)" />

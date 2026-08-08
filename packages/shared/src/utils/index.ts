@@ -1,6 +1,8 @@
 export * from './bp-classification'
 export * from './glucose-units'
 export * from './adherence'
+export * from './growth-lms'
+export * from './growth-reference'
 
 // ── Date helpers ──────────────────────────────────────────────
 export function toISODate(date: Date): string {

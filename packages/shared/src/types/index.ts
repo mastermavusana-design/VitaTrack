@@ -176,12 +176,15 @@ export type DoctorVisit = {
 // ── Documents ─────────────────────────────────────────────────
 export type DocumentCategory =
   | 'prescription' | 'lab_result' | 'imaging'
-  | 'insurance' | 'hospital' | 'other'
+  | 'insurance' | 'hospital'
+  | 'immunization' | 'growth_chart'    // added by 20240728 child-health migration
+  | 'other'
 
 export type HealthDocument = {
   id: string
   profile_id: string
   visit_id: string | null
+  dependant_id: string | null          // child this document is filed against (Phase 5)
   category: DocumentCategory
   file_name: string
   file_type: string
@@ -242,6 +245,121 @@ export type AuditLog = {
   user_agent: string | null
   metadata: Record<string, unknown> | null
   created_at: string
+}
+
+// ══════════════════════════════════════════════════════════════
+// Child Health Record — Road to Health Booklet (Phase 5)
+// Mirrors 20240728000000_child_health_record.sql. Child records key
+// off `dependant_id`, NOT `profile_id` (dependant-centric design).
+// ══════════════════════════════════════════════════════════════
+
+export type Sex = 'male' | 'female'
+
+// ── Dependants (managed child profiles owned by a guardian) ───
+export type Dependant = {
+  id: string
+  guardian_id: string                 // -> profiles.id
+  full_name: string
+  date_of_birth: string               // ISO date
+  sex: Sex | null                     // WHO growth standards are sex-specific
+  birth_weight_g: number | null
+  gestational_age_wk: number | null   // for preterm growth correction
+  relationship: string | null         // 'child','grandchild','ward'...
+  rthb_number: string | null          // printed RtHB / clinic number
+  schedule_ver: string | null         // immunisation schedule version applied
+  popia_consent: boolean              // guardian consent for this child's special-personal data
+  popia_consent_at: string | null
+  archived_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ── Vaccine schedule (seeded reference; e.g. 'EPI-SA-2024.1') ──
+export type VaccineScheduleRow = {
+  id: string
+  schedule_ver: string
+  vaccine_code: string                // 'BCG','OPV','HEXA','PCV','RV','MR','Tdap'...
+  vaccine_name: string
+  dose_label: string                  // 'birth','6 weeks','6 years'...
+  offset_days: number                 // from date of birth
+  sort_order: number
+  notes: string | null
+}
+
+// ── Immunisations (per-child administered / due doses) ────────
+export type ImmunisationStatus = 'due' | 'given' | 'skipped' | 'contraindicated'
+export type ChildRecordSource = 'manual' | 'scan' | 'import'
+
+export type Immunisation = {
+  id: string
+  dependant_id: string
+  vaccine_code: string
+  vaccine_name: string
+  dose_label: string | null           // links to a schedule dose
+  status: ImmunisationStatus
+  due_date: string | null
+  given_date: string | null
+  batch_lot: string | null
+  site: string | null                 // 'left thigh','right arm'...
+  facility: string | null
+  administered_by: string | null
+  reminder_enabled: boolean
+  source: ChildRecordSource
+  capture_id: string | null           // -> scan_captures.id
+  cert_document_id: string | null     // -> health_documents.id (yellow-fever / COVID cert)
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ── Growth measurements (WHO Child Growth Standards inputs) ────
+export type GrowthMeasurement = {
+  id: string
+  dependant_id: string
+  measured_at: string                 // ISO date
+  weight_kg: number | null
+  length_cm: number | null            // length (lying) vs height (standing)
+  head_circ_cm: number | null
+  muac_cm: number | null              // mid-upper-arm circumference
+  source: ChildRecordSource
+  capture_id: string | null
+  notes: string | null
+  created_at: string
+}
+
+// ── Milestone schedule (seeded reference; e.g. 'WHO-GMM-2006') ─
+export type MilestoneScheduleRow = {
+  id: string
+  schedule_ver: string
+  domain: MilestoneDomain
+  milestone: string
+  expected_age_band: string
+  offset_days_min: number             // window start, days from DOB
+  offset_days_max: number             // window end (flag if not achieved by here)
+  sort_order: number
+  notes: string | null
+}
+
+// ── Developmental milestones (per-child checklist status) ─────
+export type MilestoneDomain = 'motor' | 'language' | 'social' | 'cognitive'
+export type MilestoneStatus = 'not_yet' | 'achieved' | 'concern'
+
+export type Milestone = {
+  id: string
+  dependant_id: string
+  domain: MilestoneDomain | null
+  milestone: string
+  expected_age_band: string | null    // '6-9 months'
+  status: MilestoneStatus
+  achieved_on: string | null
+  notes: string | null
+  created_at: string
+}
+
+// ── UI helper types ───────────────────────────────────────────
+export type DependantWithSummary = Dependant & {
+  next_due?: Immunisation | null
+  latest_growth?: GrowthMeasurement | null
 }
 
 // ── Derived / View Types ──────────────────────────────────────

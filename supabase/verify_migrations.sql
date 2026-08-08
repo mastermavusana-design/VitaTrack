@@ -80,7 +80,19 @@ WITH checks(sort, check_name, pass) AS (
     -- Vitals updated_at for sync (20240801)
     (28, 'VU  vitals has updated_at column',
          EXISTS (SELECT 1 FROM information_schema.columns
-                   WHERE table_name = 'vitals' AND column_name = 'updated_at'))
+                   WHERE table_name = 'vitals' AND column_name = 'updated_at')),
+    -- Milestone reference schedule (20240805)
+    (29, 'MS  milestone_schedule table exists',
+         to_regclass('public.milestone_schedule') IS NOT NULL),
+    (30, 'MS  WHO-GMM-2006 seed present (6 motor milestones)',
+         (SELECT count(*) = 6 FROM public.milestone_schedule
+            WHERE schedule_ver = 'WHO-GMM-2006' AND domain = 'motor')),
+    (31, 'MS  expand_milestone_schedule() exists',
+         to_regprocedure('public.expand_milestone_schedule(uuid,text)') IS NOT NULL),
+    -- health_documents child link (20240806)
+    (32, 'HD  health_documents has dependant_id column',
+         EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'health_documents' AND column_name = 'dependant_id'))
 )
 SELECT check_name,
        CASE WHEN pass THEN 'PASS' ELSE '❌ FAIL' END AS result
