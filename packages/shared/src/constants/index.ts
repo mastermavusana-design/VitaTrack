@@ -21,6 +21,13 @@ export const MISSED_DOSE_ALERT_MINUTES = 30
 export const BIOMETRIC_LOCK_MINUTES = 5
 export const DOSE_EDIT_WINDOW_HOURS = 2
 
+// ── Child health (Phase 5) — active reference-schedule versions ──
+// Data-driven per IMPLEMENTATION_PLAN §8: bump these (and ship a new seed
+// migration) when the recommended schedule changes — no app-logic change.
+// Passed to expand_immunisation_schedule() / expand_milestone_schedule().
+export const ACTIVE_VACCINE_SCHEDULE_VER = 'EPI-SA-2024.1'
+export const ACTIVE_MILESTONE_SCHEDULE_VER = 'WHO-GMM-2006'
+
 export const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'] as const
 
 export const SA_TIMEZONE = 'Africa/Johannesburg'

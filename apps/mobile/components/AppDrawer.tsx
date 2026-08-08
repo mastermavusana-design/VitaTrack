@@ -34,6 +34,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Home',        icon: '🏠', path: '/(app)',             match: p => p === '/' || p === '/(app)' || p.endsWith('/index') },
   { label: 'Medications', icon: '💊', path: '/(app)/medications', match: p => p.includes('/medications') },
+  { label: 'Children',    icon: '👶', path: '/(app)/children',    match: p => p.includes('/children') },
   { label: 'Vitals',      icon: '📊', path: '/(app)/vitals',      match: p => p.includes('/vitals') },
   { label: 'Records',     icon: '📂', path: '/(app)/records',     match: p => p.includes('/records') },
   { label: 'Profile',     icon: '👤', path: '/(app)/profile',     match: p => p.includes('/profile') || p.includes('/settings') },

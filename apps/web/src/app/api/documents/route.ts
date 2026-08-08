@@ -8,7 +8,7 @@ import { createServerClient } from '@/lib/supabase'
 import { retiredIfClientDirect } from '@/lib/apiRetired'
 import { captureException } from '@vitatrack/shared'
 
-const VALID_CATEGORIES = ['prescription', 'lab_result', 'imaging', 'insurance', 'hospital', 'other']
+const VALID_CATEGORIES = ['prescription', 'lab_result', 'imaging', 'insurance', 'hospital', 'immunization', 'growth_chart', 'other']
 
 export async function GET() {
   const gone = retiredIfClientDirect(); if (gone) return gone
@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
     .insert({
       profile_id:      user.id,
       visit_id:        body.visit_id || null,
+      dependant_id:    body.dependant_id || null,   // RLS: guardian files under own profile
       category,
       file_name:       fileName,
       file_type:       body.file_type || null,

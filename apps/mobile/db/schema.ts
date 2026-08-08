@@ -8,7 +8,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb'
 
 export const schema = appSchema({
-  version: 2,
+  version: 3,
   tables: [
     tableSchema({
       name: 'vitals',
@@ -108,6 +108,70 @@ export const schema = appSchema({
         { name: 'synced_at',      type: 'number',  isOptional: true },
         { name: 'is_dirty',       type: 'boolean', isOptional: true }, // needs push to server
         { name: 'is_deleted',     type: 'boolean', isOptional: true }, // soft delete
+      ],
+    }),
+
+    // ── Child Health Record (Phase 5) — offline read mirror ─────────────────
+    tableSchema({
+      name: 'dependants',
+      columns: [
+        { name: 'server_id',          type: 'string',  isOptional: true },
+        { name: 'guardian_id',        type: 'string' },
+        { name: 'full_name',          type: 'string' },
+        { name: 'date_of_birth',      type: 'string' },   // YYYY-MM-DD
+        { name: 'sex',                type: 'string',  isOptional: true },
+        { name: 'birth_weight_g',     type: 'number',  isOptional: true },
+        { name: 'gestational_age_wk', type: 'number',  isOptional: true },
+        { name: 'relationship',       type: 'string',  isOptional: true },
+        { name: 'rthb_number',        type: 'string',  isOptional: true },
+        { name: 'popia_consent',      type: 'boolean', isOptional: true },
+        { name: 'archived_at',        type: 'string',  isOptional: true },
+        { name: 'synced_at',          type: 'number',  isOptional: true },
+        { name: 'is_deleted',         type: 'boolean', isOptional: true },
+      ],
+    }),
+
+    tableSchema({
+      name: 'immunisations',
+      columns: [
+        { name: 'server_id',        type: 'string',  isOptional: true },
+        { name: 'dependant_id',     type: 'string' },   // server uuid of the dependant
+        { name: 'vaccine_code',     type: 'string' },
+        { name: 'vaccine_name',     type: 'string' },
+        { name: 'dose_label',       type: 'string',  isOptional: true },
+        { name: 'status',           type: 'string' },
+        { name: 'due_date',         type: 'string',  isOptional: true },
+        { name: 'given_date',       type: 'string',  isOptional: true },
+        { name: 'reminder_enabled', type: 'boolean', isOptional: true },
+        { name: 'synced_at',        type: 'number',  isOptional: true },
+      ],
+    }),
+
+    tableSchema({
+      name: 'growth_measurements',
+      columns: [
+        { name: 'server_id',    type: 'string',  isOptional: true },
+        { name: 'dependant_id', type: 'string' },
+        { name: 'measured_at',  type: 'string' },   // YYYY-MM-DD
+        { name: 'weight_kg',    type: 'number',  isOptional: true },
+        { name: 'length_cm',    type: 'number',  isOptional: true },
+        { name: 'head_circ_cm', type: 'number',  isOptional: true },
+        { name: 'muac_cm',      type: 'number',  isOptional: true },
+        { name: 'synced_at',    type: 'number',  isOptional: true },
+      ],
+    }),
+
+    tableSchema({
+      name: 'milestones',
+      columns: [
+        { name: 'server_id',         type: 'string',  isOptional: true },
+        { name: 'dependant_id',      type: 'string' },
+        { name: 'domain',            type: 'string',  isOptional: true },
+        { name: 'milestone',         type: 'string' },
+        { name: 'expected_age_band', type: 'string',  isOptional: true },
+        { name: 'status',            type: 'string' },
+        { name: 'achieved_on',       type: 'string',  isOptional: true },
+        { name: 'synced_at',         type: 'number',  isOptional: true },
       ],
     }),
   ],

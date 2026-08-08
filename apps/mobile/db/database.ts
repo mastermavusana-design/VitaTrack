@@ -12,6 +12,10 @@ import {
   MedicationScheduleModel,
   DoseLogModel,
   DoctorVisitModel,
+  DependantModel,
+  ImmunisationModel,
+  GrowthMeasurementModel,
+  MilestoneModel,
 } from './models'
 
 const adapter = new SQLiteAdapter({
@@ -32,6 +36,10 @@ export const database = new Database({
     MedicationScheduleModel,
     DoseLogModel,
     DoctorVisitModel,
+    DependantModel,
+    ImmunisationModel,
+    GrowthMeasurementModel,
+    MilestoneModel,
   ],
 })
 
@@ -40,3 +48,7 @@ export const medicationsCollection     = database.get<MedicationModel>('medicati
 export const schedulesCollection       = database.get<MedicationScheduleModel>('medication_schedules')
 export const doseLogsCollection        = database.get<DoseLogModel>('dose_logs')
 export const doctorVisitsCollection    = database.get<DoctorVisitModel>('doctor_visits')
+export const dependantsCollection      = database.get<DependantModel>('dependants')
+export const immunisationsCollection   = database.get<ImmunisationModel>('immunisations')
+export const growthMeasurementsCollection = database.get<GrowthMeasurementModel>('growth_measurements')
+export const milestonesCollection      = database.get<MilestoneModel>('milestones')

@@ -107,3 +107,63 @@ export class DoctorVisitModel extends Model {
   @field('is_dirty')          isDirty!:         boolean
   @field('is_deleted')        isDeleted!:       boolean
 }
+
+/* ─── Child Health Record (Phase 5) ─────────────────────────────────────── */
+export class DependantModel extends Model {
+  static table = 'dependants'
+
+  @field('server_id')          serverId!:         string | null
+  @field('guardian_id')        guardianId!:       string
+  @field('full_name')          fullName!:         string
+  @field('date_of_birth')      dateOfBirth!:      string
+  @field('sex')                sex!:              string | null
+  @field('birth_weight_g')     birthWeightG!:     number | null
+  @field('gestational_age_wk') gestationalAgeWk!: number | null
+  @field('relationship')       relationship!:     string | null
+  @field('rthb_number')        rthbNumber!:       string | null
+  @field('popia_consent')      popiaConsent!:     boolean
+  @field('archived_at')        archivedAt!:       string | null
+  @field('synced_at')          syncedAt!:         number | null
+  @field('is_deleted')         isDeleted!:        boolean
+}
+
+export class ImmunisationModel extends Model {
+  static table = 'immunisations'
+
+  @field('server_id')        serverId!:        string | null
+  @field('dependant_id')     dependantId!:     string
+  @field('vaccine_code')     vaccineCode!:     string
+  @field('vaccine_name')     vaccineName!:     string
+  @field('dose_label')       doseLabel!:       string | null
+  @field('status')           status!:          string
+  @field('due_date')         dueDate!:         string | null
+  @field('given_date')       givenDate!:       string | null
+  @field('reminder_enabled') reminderEnabled!: boolean
+  @field('synced_at')        syncedAt!:        number | null
+}
+
+export class GrowthMeasurementModel extends Model {
+  static table = 'growth_measurements'
+
+  @field('server_id')    serverId!:    string | null
+  @field('dependant_id') dependantId!: string
+  @field('measured_at')  measuredAt!:  string
+  @field('weight_kg')    weightKg!:    number | null
+  @field('length_cm')    lengthCm!:    number | null
+  @field('head_circ_cm') headCircCm!:  number | null
+  @field('muac_cm')      muacCm!:      number | null
+  @field('synced_at')    syncedAt!:    number | null
+}
+
+export class MilestoneModel extends Model {
+  static table = 'milestones'
+
+  @field('server_id')         serverId!:        string | null
+  @field('dependant_id')      dependantId!:     string
+  @field('domain')            domain!:          string | null
+  @field('milestone')         milestone!:       string
+  @field('expected_age_band') expectedAgeBand!: string | null
+  @field('status')            status!:          string
+  @field('achieved_on')       achievedOn!:      string | null
+  @field('synced_at')         syncedAt!:        number | null
+}

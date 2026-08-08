@@ -9,8 +9,9 @@ import * as Notifications from 'expo-notifications'
 import type { Medication, MedicationSchedule } from '@vitatrack/shared'
 
 /** Channel IDs (Android) */
-export const CHANNEL_DOSE     = 'vitatrack-dose'
-export const CHANNEL_REFILL   = 'vitatrack-refill'
+export const CHANNEL_DOSE         = 'vitatrack-dose'
+export const CHANNEL_REFILL       = 'vitatrack-refill'
+export const CHANNEL_IMMUNISATION = 'vitatrack-immunisation'
 
 /** How many days ahead to schedule at once */
 const SCHEDULE_HORIZON_DAYS = 7
@@ -37,6 +38,15 @@ export async function bootstrapNotifications(): Promise<boolean> {
     name: 'Refill Alerts',
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: 'default',
+    showBadge: true,
+  })
+
+  await Notifications.setNotificationChannelAsync(CHANNEL_IMMUNISATION, {
+    name: 'Vaccination Reminders',
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: 'default',
+    vibrationPattern: [0, 250, 250, 250],
+    enableVibrate: true,
     showBadge: true,
   })
 
@@ -167,6 +177,77 @@ export async function rescheduleAll(
       .filter(m => m.is_active && m.pill_count !== null && m.pill_count <= (m.refill_threshold ?? 7))
       .map(m => scheduleRefillAlert(m))
   )
+}
+
+/** ──────────────────────────────────────── */
+/*  Immunisation (booster) reminders         */
+/** ──────────────────────────────────────── */
+
+/** A due dose to remind about (shape from useChildren.fetchDueImmunisations). */
+export type DueImmunisation = {
+  id: string
+  vaccine_name: string
+  dose_label: string | null
+  due_date: string                 // YYYY-MM-DD
+  dependant: { full_name: string } | null
+}
+
+// Fire at 08:00 local; remind a week ahead and on the day itself.
+const IMM_HOUR = 8
+const IMM_LEAD_DAYS = [7, 0]
+
+/** Cancel all scheduled immunisation reminders. */
+export async function cancelImmunisationReminders(): Promise<void> {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync()
+  const toCancel = scheduled
+    .filter(n => (n.content.data as any)?.type === 'immunisation_reminder')
+    .map(n => n.identifier)
+  await Promise.all(toCancel.map(id => Notifications.cancelScheduledNotificationAsync(id)))
+}
+
+/**
+ * Re-schedule local booster reminders for the guardian's due doses. Cancels the
+ * previous set first (idempotent). All local — no network. Call after fetching
+ * due immunisations (on the Children screen, and after marking a dose given).
+ */
+export async function rescheduleImmunisations(items: DueImmunisation[]): Promise<void> {
+  await cancelImmunisationReminders()
+  const now = new Date()
+  const horizon = new Date(now)
+  horizon.setDate(horizon.getDate() + 366)
+
+  for (const item of items) {
+    if (!item.due_date) continue
+    const due = new Date(`${item.due_date}T00:00:00`) // local midnight
+    if (Number.isNaN(due.getTime())) continue
+    const child = item.dependant?.full_name ?? 'your child'
+    const dose = item.dose_label ? ` (${item.dose_label})` : ''
+
+    for (const lead of IMM_LEAD_DAYS) {
+      const fire = new Date(due)
+      fire.setDate(fire.getDate() - lead)
+      fire.setHours(IMM_HOUR, 0, 0, 0)
+      if (fire <= now || fire > horizon) continue
+
+      const body = lead === 0
+        ? `${item.vaccine_name}${dose} for ${child} is due today`
+        : `${item.vaccine_name}${dose} for ${child} is due in a week (${item.due_date})`
+
+      await Notifications.scheduleNotificationAsync({
+        identifier: `imm-${item.id}-${lead}`,
+        content: {
+          title: '💉 Vaccination due',
+          body,
+          data: { immunisationId: item.id, type: 'immunisation_reminder' },
+          sound: 'default',
+        },
+        trigger: {
+          date: fire,
+          channelId: CHANNEL_IMMUNISATION,
+        },
+      })
+    }
+  }
 }
 
 /** ──────────────────────────────────────── */

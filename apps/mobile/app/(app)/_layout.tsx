@@ -28,6 +28,7 @@ export default function AppLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="medications" />
+        <Stack.Screen name="children" />
         <Stack.Screen name="vitals" />
         <Stack.Screen name="records" />
         <Stack.Screen name="profile" />

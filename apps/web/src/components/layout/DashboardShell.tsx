@@ -7,7 +7,7 @@ import { clearOfflineData } from '@/lib/pwa'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import {
   HomeIcon, VitalsIcon, PillIcon, RecordsIcon, BellIcon, EmergencyIcon,
-  FamilyIcon, SettingsIcon, ScanIcon, ChevronIcon, MenuIcon, CloseIcon, SignOutIcon,
+  FamilyIcon, SettingsIcon, ScanIcon, ChildIcon, ChevronIcon, MenuIcon, CloseIcon, SignOutIcon,
 } from './icons'
 
 interface Props {
@@ -73,6 +73,7 @@ export default function DashboardShell({ userEmail, userName, isCaregiver, child
     { href: '/dashboard', label: 'Dashboard', Icon: HomeIcon },
     { href: '/dashboard/vitals', label: 'Vitals', Icon: VitalsIcon },
     { href: '/dashboard/medications', label: 'Medications', Icon: PillIcon },
+    { href: '/dashboard/children', label: 'Children', Icon: ChildIcon },
     { href: '/dashboard/records', label: 'Records', Icon: RecordsIcon },
     { href: '/dashboard/scan', label: 'Scan', Icon: ScanIcon },
     { href: '/dashboard/notifications', label: 'Notifications', Icon: BellIcon },
