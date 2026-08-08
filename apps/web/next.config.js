@@ -1,8 +1,25 @@
+const path = require('path')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['@vitatrack/shared'],
   images: {
     domains: [],
+  },
+  // The monorepo uses node-linker=hoisted (required for Expo on Windows) with mixed
+  // React majors — web is React 18 (Next 14 only supports 18), mobile is React 19
+  // (Expo 54). In the flat node_modules, React 19 sits at the root and can leak into
+  // the web build, crashing `next build` static generation with a duplicate-React
+  // "Cannot read properties of null (reading 'useContext')". Pin every react/react-dom
+  // import in the web build to this app's own React 18 copies so resolution is
+  // deterministic regardless of hoisting.
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      react: path.dirname(require.resolve('react/package.json')),
+      'react-dom': path.dirname(require.resolve('react-dom/package.json')),
+    }
+    return config
   },
   // Security headers
   async headers() {
