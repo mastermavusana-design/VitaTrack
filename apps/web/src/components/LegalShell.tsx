@@ -40,7 +40,7 @@ export function LegalShell({
 
       <footer className="border-t border-gray-200 bg-white">
         <div className="mx-auto max-w-3xl px-6 py-6 text-xs text-gray-400">
-          © {new Date().getFullYear()} VitaTrack. Operated by [Registered Company Name].
+          © {new Date().getFullYear()} VitaTrack. Operated by Vusumuzi Nhlapo.
         </div>
       </footer>
     </div>
