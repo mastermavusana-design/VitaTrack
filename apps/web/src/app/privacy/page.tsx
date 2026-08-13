@@ -14,9 +14,8 @@ export default function PrivacyPolicyPage() {
     <LegalShell title="Privacy Policy" lastUpdated={LAST_UPDATED}>
       <p>
         This Privacy Policy explains how <strong>VitaTrack</strong> (&ldquo;VitaTrack&rdquo;,
-        &ldquo;we&rdquo;, &ldquo;us&rdquo;), operated by <strong>[Registered Company Name]</strong>{' '}
-        (registration number <strong>[Company Registration Number]</strong>), collects, uses,
-        stores, shares, and protects your personal information. We are the{' '}
+        &ldquo;we&rdquo;, &ldquo;us&rdquo;), operated by <strong>Vusumuzi Nhlapo</strong> as an
+        individual, collects, uses, stores, shares, and protects your personal information. We are the{' '}
         <em>Responsible Party</em> for your personal information as defined in South Africa&rsquo;s{' '}
         <strong>Protection of Personal Information Act, 2013 (POPIA)</strong>.
       </p>
@@ -29,13 +28,14 @@ export default function PrivacyPolicyPage() {
 
       <LegalSection id="responsible-party" heading="1. Responsible Party & Information Officer">
         <p>
-          The Responsible Party is [Registered Company Name], [Registered Physical Address, South
-          Africa]. Our appointed <strong>Information Officer</strong> (registered with the
-          Information Regulator) can be reached at{' '}
+          The Responsible Party is <strong>Vusumuzi Nhlapo</strong>, who operates VitaTrack as an
+          individual and also acts as the <strong>Information Officer</strong> for the purposes of
+          POPIA. You can contact the Information Officer at{' '}
           <a href="mailto:privacy@vitatrack.co.za" className="text-blue-600 underline">
             privacy@vitatrack.co.za
-          </a>{' '}
-          or <strong>[Information Officer telephone]</strong>.
+          </a>
+          . A postal or physical address for written correspondence is available on request via that
+          email.
         </p>
       </LegalSection>
 

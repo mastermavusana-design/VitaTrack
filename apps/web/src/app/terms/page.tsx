@@ -13,7 +13,7 @@ export default function TermsPage() {
     <LegalShell title="Terms of Service" lastUpdated={LAST_UPDATED}>
       <p>
         These Terms of Service (&ldquo;Terms&rdquo;) govern your use of the VitaTrack application and
-        website (the &ldquo;Service&rdquo;), operated by <strong>[Registered Company Name]</strong>.
+        website (the &ldquo;Service&rdquo;), operated by <strong>Vusumuzi Nhlapo</strong> as an individual.
         By creating an account or using the Service you agree to these Terms. If you do not agree,
         do not use the Service.
       </p>
