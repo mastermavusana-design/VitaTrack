@@ -57,7 +57,7 @@ module.exports = {
 
     android: {
       package:     getBundleId(),
-      versionCode: 1,
+      // versionCode is managed remotely by EAS (cli.appVersionSource: "remote")
       adaptiveIcon: {
         foregroundImage: './assets/images/adaptive-icon.png',
         backgroundColor: '#D6D6D6',
@@ -66,8 +66,9 @@ module.exports = {
         'USE_BIOMETRIC',
         'USE_FINGERPRINT',
         'CAMERA',
-        'READ_EXTERNAL_STORAGE',
-        'WRITE_EXTERNAL_STORAGE',
+        // Storage permissions intentionally omitted: the app uses the scoped
+        // document/image pickers (no MediaLibrary), so READ/WRITE_EXTERNAL_STORAGE
+        // are unnecessary and would trigger a Play sensitive-permissions review.
         'RECEIVE_BOOT_COMPLETED',
         'VIBRATE',
         'POST_NOTIFICATIONS',

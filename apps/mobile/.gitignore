@@ -4,3 +4,17 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# ── Secrets & signing (never commit) ──────────────────────────────
+# Play service-account key used by `eas submit` (see store/LAUNCH_RUNBOOK.md)
+google-services-key.json
+# FCM config (also covered at repo root, repeated here for safety)
+google-services.json
+google-services-dev.json
+# Android signing keystores
+*.jks
+*.keystore
+# Local env (values are EXPO_PUBLIC_* but keep out of git; commit .env.example only)
+.env
+.env.*
+!.env.example

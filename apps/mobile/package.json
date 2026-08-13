@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "build:dev": "eas build --profile development",
-    "build:staging": "eas build --profile staging",
+    "build:preview": "eas build --profile preview",
     "build:prod": "eas build --profile production",
     "submit:ios": "eas submit --platform ios",
     "submit:android": "eas submit --platform android",
